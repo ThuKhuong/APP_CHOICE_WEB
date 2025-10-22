@@ -24,46 +24,88 @@ export default function StudentAttemptDetailPage() {
           `/exam-sessions/${sessionId}/student/${studentId}`
         );
         setData(res.data);
-      } catch {
+      } catch (error) {
+        console.error("Lỗi khi tải bài làm sinh viên:", error);
+        console.error("Chi tiết lỗi:", error.response?.data);
         message.error("Không tải được bài làm của sinh viên");
       }
     };
     load();
   }, [sessionId, studentId]);
-
   if (!data) return <p style={{ padding: 24 }}>Đang tải dữ liệu...</p>;
 
+  // Xử lý fallback cho các trường hợp null/undefined
+  const score =
+    data.score !== null && data.score !== undefined ? data.score : 0;
+  const correctAnswers =
+    data.correct_answers !== null && data.correct_answers !== undefined
+      ? data.correct_answers
+      : 0;
+  const totalQuestions =
+    data.total_questions !== null && data.total_questions !== undefined
+      ? data.total_questions
+      : 0;
+  let submittedAt = data.submitted_at;
+  let submittedAtStr = "";
+  if (submittedAt) {
+    const d = new Date(submittedAt);
+    submittedAtStr = isNaN(d.getTime()) ? "-" : d.toLocaleString();
+  } else {
+    submittedAtStr = "-";
+  }
+
   const columns = [
-    { title: "Câu hỏi", dataIndex: "text" },
+    {
+      title: "Câu hỏi",
+      dataIndex: "question_content",
+      key: "question_content",
+    },
     {
       title: "Đáp án đúng",
-      dataIndex: "correct_choice",
-      render: (v) => <b style={{ color: "green" }}>{v}</b>,
+      render: (_, record) => {
+        // Lấy tất cả đáp án đúng (is_correct=true) và nối bằng dấu phẩy
+        const correctLabels = Array.isArray(record.all_answers)
+          ? record.all_answers.filter((a) => a.is_correct).map((a) => a.label)
+          : [];
+        return (
+          <b style={{ color: "green" }}>
+            {correctLabels.length > 0 ? correctLabels.join(", ") : "N/A"}
+          </b>
+        );
+      },
     },
     {
       title: "Sinh viên chọn",
-      dataIndex: "chosen_choice",
-      render: (v, r) => (
-        <span style={{ color: v === r.correct_choice ? "green" : "red" }}>
-          {v || "-"}
-        </span>
-      ),
+      render: (_, record) => {
+        const isCorrect = record.is_correct;
+        return (
+          <span style={{ color: isCorrect ? "green" : "red" }}>
+            {record.chosen_answer_label || "-"}
+          </span>
+        );
+      },
     },
   ];
 
   return (
     <div style={{ padding: 24 }}>
-      {/* 🧭 Breadcrumb */}
+      {/*  Breadcrumb */}
       <Breadcrumb
         items={[
           { title: <a onClick={() => navigate("/results")}>Kết quả thi</a> },
-          { title: <a onClick={() => navigate(`/results/${sessionId}`)}>Ca thi #{sessionId}</a> },
+          {
+            title: (
+              <a onClick={() => navigate(`/results/${sessionId}`)}>
+                Ca thi #{sessionId}
+              </a>
+            ),
+          },
           { title: `Sinh viên: ${data.student}` },
         ]}
         style={{ marginBottom: 12 }}
       />
 
-      {/* 🔙 Nút quay lại */}
+      {/*  Nút quay lại */}
       <Button
         type="default"
         onClick={() => navigate(-1)}
@@ -77,23 +119,20 @@ export default function StudentAttemptDetailPage() {
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={8}>
           <Card>
-            <Statistic title="Điểm" value={data.score} precision={1} />
+            <Statistic title="Điểm" value={score} precision={1} />
           </Card>
         </Col>
         <Col span={8}>
           <Card>
             <Statistic
               title="Câu đúng"
-              value={`${data.correct_answers}/${data.total_questions}`}
+              value={`${correctAnswers}/${totalQuestions}`}
             />
           </Card>
         </Col>
         <Col span={8}>
           <Card>
-            <Statistic
-              title="Ngày nộp"
-              value={new Date(data.submitted_at).toLocaleString()}
-            />
+            <Statistic title="Ngày nộp" value={submittedAtStr} />
           </Card>
         </Col>
       </Row>
@@ -101,7 +140,7 @@ export default function StudentAttemptDetailPage() {
       <Table
         dataSource={data.answers}
         columns={columns}
-        rowKey={(r) => r.text}
+        rowKey={(r, index) => index}
         pagination={{ pageSize: 10 }}
       />
     </div>

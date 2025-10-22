@@ -80,38 +80,48 @@ export default function ShuffleExamPage() {
     },
     {
       title: "Câu hỏi",
-      dataIndex: "text",
+      dataIndex: "content",
       ellipsis: true,
     },
     {
       title: "Đáp án A",
-      dataIndex: "choice_a",
+      render: (_, record) =>
+        record.answers?.find((a) => a.label === "A")?.content || "",
       width: 120,
       ellipsis: true,
     },
     {
       title: "Đáp án B",
-      dataIndex: "choice_b",
+      render: (_, record) =>
+        record.answers?.find((a) => a.label === "B")?.content || "",
       width: 120,
       ellipsis: true,
     },
     {
       title: "Đáp án C",
-      dataIndex: "choice_c",
+      render: (_, record) =>
+        record.answers?.find((a) => a.label === "C")?.content || "",
       width: 120,
       ellipsis: true,
     },
     {
       title: "Đáp án D",
-      dataIndex: "choice_d",
+      render: (_, record) =>
+        record.answers?.find((a) => a.label === "D")?.content || "",
       width: 120,
       ellipsis: true,
     },
     {
       title: "Đáp án đúng",
-      dataIndex: "correct_choice",
+      render: (_, record) => {
+        const correctAnswer = record.answers?.find((a) => a.is_correct);
+        return correctAnswer ? (
+          <Tag color="green">{correctAnswer.label}</Tag>
+        ) : (
+          <Tag>N/A</Tag>
+        );
+      },
       width: 100,
-      render: (choice) => <Tag color="green">{choice}</Tag>,
     },
   ];
 
@@ -164,7 +174,7 @@ export default function ShuffleExamPage() {
             disabled={!selectedExam}
             style={{ marginTop: 16 }}
           >
-             Trộn thứ tự câu hỏi
+            Trộn thứ tự câu hỏi
           </Button>
         </Form>
       </Card>

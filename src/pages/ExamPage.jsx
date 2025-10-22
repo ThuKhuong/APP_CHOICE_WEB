@@ -19,7 +19,7 @@ export default function ExamPage() {
   const [questions, setQuestions] = useState([]);
   const [selectedQuestions, setSelectedQuestions] = useState([]);
   const [open, setOpen] = useState(false);
-  const [editingExam, setEditingExam] = useState(null); 
+  const [editingExam, setEditingExam] = useState(null);
   const [form] = Form.useForm();
 
   // Load dữ liệu
@@ -94,7 +94,7 @@ export default function ExamPage() {
     setSelectedQuestions(res.data.map((q) => q.question_id));
   };
 
-  // 🟢 Cấu hình bảng
+  // Cấu hình bảng
   const columns = [
     { title: "ID", dataIndex: "id", width: 60 },
     { title: "Tên đề thi", dataIndex: "title" },
@@ -107,7 +107,10 @@ export default function ExamPage() {
           <Button type="link" onClick={() => handleEdit(record)}>
             Sửa
           </Button>
-          <Popconfirm title="Xác nhận xóa?" onConfirm={() => handleDelete(record.id)}>
+          <Popconfirm
+            title="Xác nhận xóa?"
+            onConfirm={() => handleDelete(record.id)}
+          >
             <Button type="link" danger>
               Xóa
             </Button>
@@ -117,7 +120,7 @@ export default function ExamPage() {
     },
   ];
 
-  // 🟢 JSX
+  //  JSX
   return (
     <div style={{ padding: 24 }}>
       <h2>Danh sách đề thi</h2>
@@ -149,7 +152,11 @@ export default function ExamPage() {
         width={700}
       >
         <Form form={form} layout="vertical">
-          <Form.Item label="Môn học" name="subject_id" rules={[{ required: true }]}>
+          <Form.Item
+            label="Môn học"
+            name="subject_id"
+            rules={[{ required: true }]}
+          >
             <Select
               placeholder="Chọn môn học"
               onChange={(v) => {
@@ -165,11 +172,19 @@ export default function ExamPage() {
             </Select>
           </Form.Item>
 
-          <Form.Item label="Tên đề thi" name="title" rules={[{ required: true }]}>
+          <Form.Item
+            label="Tên đề thi"
+            name="title"
+            rules={[{ required: true }]}
+          >
             <Input placeholder="" />
           </Form.Item>
 
-          <Form.Item label="Thời gian (phút)" name="duration" rules={[{ required: true }]}>
+          <Form.Item
+            label="Thời gian (phút)"
+            name="duration"
+            rules={[{ required: true }]}
+          >
             <InputNumber min={1} max={180} />
           </Form.Item>
 
@@ -182,7 +197,9 @@ export default function ExamPage() {
               {questions.map((q) => (
                 <div key={q.id}>
                   <Checkbox value={q.id}>
-                    {q.text.length > 80 ? q.text.slice(0, 80) + "..." : q.text}
+                    {q.content.length > 80
+                      ? q.content.slice(0, 80) + "..."
+                      : q.content}
                   </Checkbox>
                 </div>
               ))}

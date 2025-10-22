@@ -12,6 +12,8 @@ import {
 } from "antd";
 import axiosClient from "../api/axiosClient";
 import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
+dayjs.extend(isBetween);
 
 export default function ExamSessionPage() {
   const [sessions, setSessions] = useState([]);
@@ -34,15 +36,79 @@ export default function ExamSessionPage() {
 
   useEffect(() => {
     loadData();
+
+    // Cập nhật realtime
+    const interval = setInterval(loadData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Tạo hoặc Cập nhật ca thi
+  // Hàm vô hiệu hóa các ngày trước hôm nay
+  const disabledDate = (current) => {
+    return current && current < dayjs().startOf("day");
+  };
+
+  // Hàm vô hiệu hóa các giờ đã qua trong ngày hhiện tại hôm nay
+  const disabledTime = (current, type) => {
+    if (!current) return {};
+
+    const now = dayjs();
+    const isToday = current.isSame(now, "day");
+
+    if (!isToday) return {};
+
+    return {
+      disabledHours: () => {
+        const hours = [];
+        for (let i = 0; i < now.hour(); i++) {
+          hours.push(i);
+        }
+        return hours;
+      },
+      disabledMinutes: (selectedHour) => {
+        if (selectedHour !== now.hour()) return [];
+        const minutes = [];
+        for (let i = 0; i <= now.minute(); i++) {
+          minutes.push(i);
+        }
+        return minutes;
+      },
+    };
+  };
+
+  // Tự động cập nhật thời gian kết thúc khi chọn đề thi hoặc thời gian bắt đầu
+  const handleAutoTime = (value, type) => {
+    let examId = form.getFieldValue("exam_id");
+    let startTime = form.getFieldValue("time")?.[0];
+    if (type === "exam" && value) examId = value;
+    if (type === "time" && value && value[0]) startTime = value[0];
+    const selectedExam = exams.find((e) => e.id === examId);
+    if (selectedExam && selectedExam.duration && startTime) {
+      const endTime = startTime.add(selectedExam.duration, "minutes");
+      form.setFieldsValue({ time: [startTime, endTime] });
+    }
+  };
+
+  // Tạo hoặc cập nhật ca thi
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
+
+      // Kiểm tra thời gian bắt đầu phải trước thời gian kết thúc
+      if (values.time[0].isAfter(values.time[1])) {
+        message.error("Thời gian bắt đầu phải trước thời gian kết thúc!");
+        return;
+      }
+      // Kiểm tra thời gian thi tối thiểu 1 phút
+      const duration = values.time[1].diff(values.time[0], "minutes");
+      if (duration < 1) {
+        message.error("Thời gian thi phải ít nhất 1 phút!");
+        return;
+      }
+
       // Tạo mã truy cập random nếu không nhập
       const randomCode = () =>
         Math.random().toString(36).substring(2, 8).toUpperCase();
+
       const payload = {
         exam_id: values.exam_id,
         start_at: values.time[0].toISOString(),
@@ -52,6 +118,7 @@ export default function ExamSessionPage() {
             ? values.access_code
             : randomCode(),
       };
+
       if (editingSession) {
         await axiosClient.put(`/sessions/${editingSession.id}`, payload);
         message.success("Cập nhật ca thi thành công!");
@@ -92,7 +159,7 @@ export default function ExamSessionPage() {
     });
   };
 
-  // 🟢 Cột bảng
+  //  Cột bảng
   const columns = [
     { title: "ID", dataIndex: "id", width: 60 },
     { title: "Đề thi", dataIndex: "exam_title" },
@@ -105,6 +172,22 @@ export default function ExamSessionPage() {
         )}`,
     },
     { title: "Mã truy cập", dataIndex: "access_code" },
+    {
+      title: "Trạng thái",
+      render: (record) => {
+        const now = dayjs();
+        const startTime = dayjs(record.start_at);
+        const endTime = dayjs(record.end_at);
+
+        if (now.isBefore(startTime)) {
+          return <span style={{ color: "#faad14" }}>Sắp diễn ra</span>;
+        } else if (now.isBetween(startTime, endTime)) {
+          return <span style={{ color: "#52c41a" }}>Đang diễn ra</span>;
+        } else {
+          return <span style={{ color: "#d9d9d9" }}>Đã kết thúc</span>;
+        }
+      },
+    },
     {
       title: "Hành động",
       render: (_, record) => (
@@ -160,10 +243,15 @@ export default function ExamSessionPage() {
             name="exam_id"
             rules={[{ required: true }]}
           >
-            <Select placeholder="Chọn đề thi">
+            <Select
+              placeholder="Chọn đề thi"
+              onChange={(v) => {
+                handleAutoTime(v, "exam");
+              }}
+            >
               {exams.map((e) => (
                 <Select.Option key={e.id} value={e.id}>
-                  {e.title} ({e.subject_name})
+                  {e.title} ({e.subject_name}) - {e.duration} phút
                 </Select.Option>
               ))}
             </Select>
@@ -172,13 +260,26 @@ export default function ExamSessionPage() {
           <Form.Item
             label="Khoảng thời gian"
             name="time"
-            rules={[{ required: true }]}
+            rules={[{ required: true, message: "Vui lòng chọn thời gian" }]}
           >
-            <DatePicker.RangePicker showTime format="YYYY-MM-DD HH:mm" />
+            <DatePicker.RangePicker
+              showTime={{ format: "HH:mm" }}
+              format="YYYY-MM-DD HH:mm"
+              disabledDate={disabledDate}
+              disabledTime={disabledTime}
+              placeholder={[
+                "Thời gian bắt đầu",
+                "Thời gian kết thúc (tự động)",
+              ]}
+              style={{ width: "100%" }}
+              onChange={(v) => {
+                handleAutoTime(v, "time");
+              }}
+            />
           </Form.Item>
 
-          <Form.Item label="Mã truy cập (tùy chọn)" name="access_code">
-            <Input placeholder="Ví dụ: ABC123" />
+          <Form.Item label="Mã truy cập" name="access_code">
+            <Input placeholder="Bỏ trống để tự động tạo mã nhé Tlinh" />
           </Form.Item>
         </Form>
       </Modal>
