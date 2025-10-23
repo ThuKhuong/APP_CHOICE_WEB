@@ -14,6 +14,7 @@ import {
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
+import axiosProctorClient from "../api/axiosProctorClient";
 
 export default function StudentMonitorPage({ studentId, sessionId, onBack }) {
   const [studentInfo, setStudentInfo] = useState(null);
@@ -27,9 +28,17 @@ export default function StudentMonitorPage({ studentId, sessionId, onBack }) {
     }
   }, [studentId, sessionId]);
 
-  const loadStudentDetails = () => {
-    // Mock data cho thông tin chi tiết sinh viên
-    const mockStudentInfo = {
+  const loadStudentDetails = async () => {
+    try {
+      // Gọi API thực tế
+      const response = await axiosProctorClient.get(`/students/${studentId}/monitor?sessionId=${sessionId}`);
+      setStudentInfo(response.data.studentInfo);
+      setActivities(response.data.activities);
+      setViolations(response.data.violations);
+    } catch (error) {
+      console.error("Lỗi tải thông tin sinh viên:", error);
+      // Fallback to mock data nếu API lỗi
+      const mockStudentInfo = {
       student_id: studentId,
       student_name: "Nguyễn Văn A",
       student_code: "SV001",
@@ -97,20 +106,28 @@ export default function StudentMonitorPage({ studentId, sessionId, onBack }) {
       },
     ];
 
-    setStudentInfo(mockStudentInfo);
-    setActivities(mockActivities);
-    setViolations(mockViolations);
+      setStudentInfo(mockStudentInfo);
+      setActivities(mockActivities);
+      setViolations(mockViolations);
+    }
   };
 
   const handleForceSubmit = () => {
     setConfirmModalOpen(true);
   };
 
-  const confirmForceSubmit = () => {
-    // Thực hiện force submit
-    message.success("Đã buộc sinh viên nộp bài");
-    setConfirmModalOpen(false);
-    if (onBack) onBack();
+  const confirmForceSubmit = async () => {
+    try {
+      await axiosProctorClient.patch(`/students/${studentId}/force-submit`, {
+        sessionId: sessionId
+      });
+      message.success("Đã buộc sinh viên nộp bài");
+      setConfirmModalOpen(false);
+      if (onBack) onBack();
+    } catch (error) {
+      console.error("Lỗi buộc nộp bài:", error);
+      message.error("Lỗi khi buộc nộp bài");
+    }
   };
 
   const formatTime = (seconds) => {

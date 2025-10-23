@@ -7,6 +7,7 @@ import {
   CheckCircleOutlined 
 } from "@ant-design/icons";
 import dayjs from "dayjs";
+import axiosProctorClient from "../api/axiosProctorClient";
 
 export default function ProctorDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
@@ -19,9 +20,15 @@ export default function ProctorDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const loadDashboardData = () => {
-    // Mock data cho dashboard
-    const mockData = {
+  const loadDashboardData = async () => {
+    try {
+      // Gọi API thực tế
+      const response = await axiosProctorClient.get("/dashboard");
+      setDashboardData(response.data);
+    } catch (error) {
+      console.error("Lỗi tải dashboard:", error);
+      // Fallback to mock data nếu API lỗi
+      const mockData = {
       activeSessions: [
         {
           session_id: 1,
@@ -105,9 +112,10 @@ export default function ProctorDashboard() {
         totalViolations: 11,
         totalIncidents: 2
       }
-    };
+      };
 
-    setDashboardData(mockData);
+      setDashboardData(mockData);
+    }
   };
 
   const getStatusColor = (status) => {
