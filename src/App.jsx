@@ -12,6 +12,7 @@ import ProctorPage from "./pages/ProctorPage";
 import RegisterTeacherPage from "./pages/RegisterPage";
 import TeacherLayout from "./components/TeacherLayout";
 import ShuffleExamPage from "./pages/ShuffleExamPage";
+import CreateExamPage from "./pages/CreateExamPage";
 
 export default function App() {
   return (
@@ -78,10 +79,18 @@ export default function App() {
           }
         />
         <Route
-          path="/shuffle-exam"
+          path="/shuffle-exam/:examId"
           element={
             <TeacherLayout>
               <ShuffleExamPage />
+            </TeacherLayout>
+          }
+        />
+        <Route
+          path="/create-exam"
+          element={
+            <TeacherLayout>
+              <CreateExamPage />
             </TeacherLayout>
           }
         />

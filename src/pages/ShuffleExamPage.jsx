@@ -1,195 +1,302 @@
-import React, { useEffect, useState } from "react";
-import { Card, Form, Select, Button, message, Table, Tag } from "antd";
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  Button,
+  InputNumber,
+  message,
+  Table,
+  Space,
+  Typography,
+  Modal,
+  Tag,
+  Divider,
+  Row,
+  Col,
+  Statistic,
+} from "antd";
+import { useParams, useNavigate } from "react-router-dom";
+import { 
+  ReloadOutlined, 
+  EyeOutlined, 
+  PlusOutlined,
+  ArrowLeftOutlined 
+} from "@ant-design/icons";
 import axiosClient from "../api/axiosClient";
 
-const { Option } = Select;
+const { Title, Text } = Typography;
 
 export default function ShuffleExamPage() {
-  const [exams, setExams] = useState([]);
-  const [selectedExam, setSelectedExam] = useState(null);
-  const [examQuestions, setExamQuestions] = useState([]);
+  const { examId } = useParams();
+  const navigate = useNavigate();
+  const [exam, setExam] = useState(null);
+  const [examSets, setExamSets] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [form] = Form.useForm();
+  const [shuffling, setShuffling] = useState(false);
+  const [selectedExamSet, setSelectedExamSet] = useState(null);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [examSetQuestions, setExamSetQuestions] = useState([]);
+  const [examSetCount, setExamSetCount] = useState(5);
 
-  useEffect(() => {
-    loadExams();
-  }, []);
-
-  const loadExams = async () => {
-    try {
-      const res = await axiosClient.get("/exams");
-      setExams(res.data);
-    } catch (err) {
-      message.error("Không tải được danh sách đề thi");
-    }
-  };
-
-  const loadExamQuestions = async (examId) => {
+  // Load thông tin đề thi
+  const loadExam = async () => {
     try {
       const res = await axiosClient.get(`/exams/${examId}`);
-      setExamQuestions(res.data.questions || []);
-      setSelectedExam(res.data);
-    } catch (err) {
-      message.error("Không tải được câu hỏi của đề thi");
+      setExam(res.data);
+    } catch (error) {
+      console.error("Error loading exam:", error);
+      message.error("Không thể tải thông tin đề thi");
     }
   };
 
-  const handleShuffleExam = async () => {
-    if (!selectedExam) {
-      message.warning("Vui lòng chọn đề thi");
-      return;
-    }
-
+  // Load danh sách bộ đề
+  const loadExamSets = async () => {
     setLoading(true);
     try {
-      // Trộn thứ tự câu hỏi
-      const shuffledQuestions = [...examQuestions].sort(
-        () => Math.random() - 0.5
-      );
-      const questionIds = shuffledQuestions.map((q) => q.id);
-
-      await axiosClient.put(`/exams/${selectedExam.id}`, {
-        title: selectedExam.title,
-        duration: selectedExam.duration,
-        question_ids: questionIds,
-      });
-
-      message.success("Trộn đề thi thành công!");
-      loadExamQuestions(selectedExam.id); // Reload để hiển thị thứ tự mới
-    } catch (err) {
-      message.error("Lỗi khi trộn đề thi");
+      const res = await axiosClient.get(`/exams/${examId}/sets`);
+      setExamSets(res.data);
+    } catch (error) {
+      console.error("Error loading exam sets:", error);
+      message.error("Không thể tải danh sách bộ đề");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleExamChange = (examId) => {
-    if (examId) {
-      loadExamQuestions(examId);
-    } else {
-      setSelectedExam(null);
-      setExamQuestions([]);
+  useEffect(() => {
+    loadExam();
+    loadExamSets();
+  }, [examId]);
+
+  // Tạo bộ đề mới
+  const handleCreateExamSets = async (count) => {
+    setShuffling(true);
+    try {
+      await axiosClient.post(`/exams/${examId}/shuffle`, { count });
+      message.success(`Đã tạo ${count} bộ đề thi thành công!`);
+      loadExamSets();
+    } catch (error) {
+      console.error("Error creating exam sets:", error);
+      message.error("Không thể tạo bộ đề thi");
+    } finally {
+      setShuffling(false);
     }
   };
 
-  const questionColumns = [
+  // Xem chi tiết bộ đề
+  const handleViewExamSet = async (examSetId) => {
+    try {
+      const res = await axiosClient.get(`/exam-sets/${examSetId}/questions`);
+      setExamSetQuestions(res.data);
+      setSelectedExamSet(examSets.find(set => set.id === examSetId));
+      setDetailModalVisible(true);
+    } catch (error) {
+      console.error("Error loading exam set details:", error);
+      message.error("Không thể tải chi tiết bộ đề");
+    }
+  };
+
+  // Cấu hình cột bảng
+  const columns = [
     {
-      title: "STT",
-      dataIndex: "order_index",
-      width: 60,
-    },
-    {
-      title: "Câu hỏi",
-      dataIndex: "content",
-      ellipsis: true,
-    },
-    {
-      title: "Đáp án A",
-      render: (_, record) =>
-        record.answers?.find((a) => a.label === "A")?.content || "",
-      width: 120,
-      ellipsis: true,
-    },
-    {
-      title: "Đáp án B",
-      render: (_, record) =>
-        record.answers?.find((a) => a.label === "B")?.content || "",
-      width: 120,
-      ellipsis: true,
-    },
-    {
-      title: "Đáp án C",
-      render: (_, record) =>
-        record.answers?.find((a) => a.label === "C")?.content || "",
-      width: 120,
-      ellipsis: true,
-    },
-    {
-      title: "Đáp án D",
-      render: (_, record) =>
-        record.answers?.find((a) => a.label === "D")?.content || "",
-      width: 120,
-      ellipsis: true,
-    },
-    {
-      title: "Đáp án đúng",
-      render: (_, record) => {
-        const correctAnswer = record.answers?.find((a) => a.is_correct);
-        return correctAnswer ? (
-          <Tag color="green">{correctAnswer.label}</Tag>
-        ) : (
-          <Tag>N/A</Tag>
-        );
-      },
+      title: "Mã bộ đề",
+      dataIndex: "code",
       width: 100,
+      render: (code) => <Tag color="blue">Bộ {code}</Tag>,
+    },
+    {
+      title: "Số câu hỏi",
+      dataIndex: "question_count",
+      width: 120,
+      render: (count) => (
+        <Text strong>{count} câu</Text>
+      ),
+    },
+    {
+      title: "Ngày tạo",
+      dataIndex: "created_at",
+      width: 150,
+      render: (date) => new Date(date).toLocaleDateString('vi-VN'),
+    },
+    {
+      title: "Thao tác",
+      width: 100,
+      render: (_, record) => (
+        <Button
+          type="link"
+          icon={<EyeOutlined />}
+          onClick={() => handleViewExamSet(record.id)}
+        >
+          Xem chi tiết
+        </Button>
+      ),
     },
   ];
 
-  return (
-    <div style={{ padding: 24 }}>
-      <h2> Trộn đề thi</h2>
-
-      <Card title="Chọn đề thi để trộn" style={{ marginBottom: 24 }}>
-        <Form form={form} layout="vertical">
-          <Form.Item label="Đề thi" name="exam_id">
-            <Select
-              placeholder="Chọn đề thi cần trộn"
-              onChange={handleExamChange}
-              showSearch
-              optionFilterProp="children"
-            >
-              {exams.map((exam) => (
-                <Option key={exam.id} value={exam.id}>
-                  {exam.title} - {exam.subject_name} ({exam.duration} phút)
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          {selectedExam && (
-            <div
-              style={{
-                marginBottom: 16,
-                padding: 16,
-                background: "#f5f5f5",
-                borderRadius: 8,
-              }}
-            >
-              <div>
-                <strong>Tiêu đề:</strong> {selectedExam.title}
-              </div>
-              <div>
-                <strong>Thời gian:</strong> {selectedExam.duration} phút
-              </div>
-              <div>
-                <strong>Số câu hỏi:</strong> {examQuestions.length}
-              </div>
+  // Cấu hình cột chi tiết câu hỏi
+  const questionColumns = [
+    {
+      title: "STT",
+      width: 60,
+      render: (_, __, index) => index + 1,
+    },
+    {
+      title: "Nội dung câu hỏi",
+      dataIndex: "content",
+      ellipsis: {
+        showTitle: false,
+      },
+      render: (content) => (
+        <div 
+          style={{ 
+            maxWidth: 300,
+            wordWrap: 'break-word',
+            whiteSpace: 'pre-wrap',
+            lineHeight: '1.4'
+          }}
+          title={content}
+        >
+          {content}
+        </div>
+      ),
+    },
+    {
+      title: "Chương",
+      dataIndex: "chapter_name",
+      width: 150,
+    },
+    {
+      title: "Đáp án",
+      dataIndex: "answers",
+      width: 250,
+      render: (answers) => (
+        <div style={{ maxWidth: 250 }}>
+          {answers?.map((answer, index) => (
+            <div key={index} style={{ marginBottom: 4 }}>
+              <Tag 
+                color={answer.is_correct ? "green" : "default"}
+                style={{ 
+                  marginBottom: 2,
+                  maxWidth: '100%',
+                  wordWrap: 'break-word',
+                  whiteSpace: 'normal',
+                  height: 'auto',
+                  lineHeight: '1.3'
+                }}
+              >
+                <span style={{ fontWeight: 'bold' }}>{answer.label}.</span> {answer.content}
+              </Tag>
             </div>
-          )}
+          ))}
+        </div>
+      ),
+    },
+  ];
 
+  if (!exam) {
+    return <div>Đang tải...</div>;
+  }
+
+  return (
+    <div style={{ padding: 24, maxWidth: 1200, margin: "0 auto" }}>
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
+        <Button 
+          icon={<ArrowLeftOutlined />} 
+          onClick={() => navigate("/exams")}
+          style={{ marginBottom: 16 }}
+        >
+          Quay lại
+        </Button>
+        
+        <Title level={2}>Trộn đề thi: {exam.title}</Title>
+        <Text type="secondary">Môn học: {exam.subject_name}</Text>
+      </div>
+
+      {/* Thống kê */}
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={8}>
+          <Card>
+            <Statistic
+              title="Tổng bộ đề"
+              value={examSets.length}
+              prefix={<ReloadOutlined />}
+            />
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card>
+            <Statistic
+              title="Thời gian thi"
+              value={exam.duration}
+              suffix="phút"
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Tạo bộ đề mới */}
+      <Card title="Tạo bộ đề mới" style={{ marginBottom: 24 }}>
+        <Space>
+          <Text>Số lượng bộ đề cần tạo:</Text>
+          <InputNumber
+            min={1}
+            max={20}
+            value={examSetCount}
+            onChange={setExamSetCount}
+            style={{ width: 100 }}
+          />
           <Button
             type="primary"
-            onClick={handleShuffleExam}
-            loading={loading}
-            disabled={!selectedExam}
-            style={{ marginTop: 16 }}
+            icon={<PlusOutlined />}
+            loading={shuffling}
+            onClick={() => {
+              if (examSetCount && examSetCount > 0) {
+                handleCreateExamSets(examSetCount);
+              } else {
+                message.error("Vui lòng nhập số lượng bộ đề");
+              }
+            }}
           >
-            Trộn thứ tự câu hỏi
+            Tạo bộ đề
           </Button>
-        </Form>
+        </Space>
       </Card>
 
-      {examQuestions.length > 0 && (
-        <Card title={` Danh sách câu hỏi (${examQuestions.length} câu)`}>
-          <Table
-            dataSource={examQuestions}
-            columns={questionColumns}
-            rowKey="id"
-            pagination={{ pageSize: 10 }}
-            size="middle"
-          />
-        </Card>
-      )}
+      {/* Danh sách bộ đề */}
+      <Card title="Danh sách bộ đề">
+        <Table
+          dataSource={examSets}
+          columns={columns}
+          rowKey="id"
+          loading={loading}
+          pagination={{ pageSize: 10 }}
+        />
+      </Card>
+
+      {/* Modal chi tiết bộ đề */}
+      <Modal
+        title={`Chi tiết bộ đề ${selectedExamSet?.code}`}
+        open={detailModalVisible}
+        onCancel={() => setDetailModalVisible(false)}
+        footer={null}
+        width={1200}
+        style={{ top: 20 }}
+        bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text strong>Bộ đề: {selectedExamSet?.code}</Text>
+          <Divider type="vertical" />
+          <Text>Số câu hỏi: {examSetQuestions.length}</Text>
+        </div>
+        
+        <Table
+          dataSource={examSetQuestions}
+          columns={questionColumns}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+          size="small"
+        />
+      </Modal>
     </div>
   );
 }

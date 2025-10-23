@@ -11,6 +11,7 @@ import {
   Popconfirm,
 } from "antd";
 import axiosClient from "../api/axiosClient";
+import ProctorSelector from "../components/ProctorSelector";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 dayjs.extend(isBetween);
@@ -21,6 +22,7 @@ export default function ExamSessionPage() {
   const [form] = Form.useForm();
   const [open, setOpen] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
+  const [selectedProctors, setSelectedProctors] = useState([]);
 
   // Tải dữ liệu
   const loadData = async () => {
@@ -123,12 +125,27 @@ export default function ExamSessionPage() {
         await axiosClient.put(`/sessions/${editingSession.id}`, payload);
         message.success("Cập nhật ca thi thành công!");
       } else {
-        await axiosClient.post("/sessions", payload);
+        const sessionResponse = await axiosClient.post("/sessions", payload);
         message.success("Tạo ca thi thành công!");
+        
+        // Phân công giám thị nếu có
+        if (selectedProctors.length > 0) {
+          try {
+            await axiosClient.post(`/sessions/${sessionResponse.data.id}/proctors`, {
+              proctorIds: selectedProctors.map(p => p.id)
+            });
+            message.success("Phân công giám thị thành công!");
+          } catch (err) {
+            console.error("Error assigning proctors:", err);
+            message.warning("Ca thi đã tạo nhưng phân công giám thị thất bại");
+          }
+        }
       }
+      
       setOpen(false);
       setEditingSession(null);
       form.resetFields();
+      setSelectedProctors([]);
       loadData();
     } catch (err) {
       message.error("Lỗi khi lưu ca thi");
@@ -280,6 +297,13 @@ export default function ExamSessionPage() {
 
           <Form.Item label="Mã truy cập" name="access_code">
             <Input placeholder="Bỏ trống để tự động tạo mã nhé Tlinh" />
+          </Form.Item>
+
+          <Form.Item label="Phân công giám thị">
+            <ProctorSelector
+              value={selectedProctors}
+              onChange={setSelectedProctors}
+            />
           </Form.Item>
         </Form>
       </Modal>

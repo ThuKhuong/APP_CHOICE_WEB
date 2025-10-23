@@ -8,7 +8,6 @@ import {
   ClockCircleOutlined,
   BarChartOutlined,
   LogoutOutlined,
-  SwapOutlined,
 } from "@ant-design/icons";
 
 const { Header, Content } = Layout;
@@ -36,11 +35,6 @@ export default function TeacherLayout({ children }) {
       key: "/exams",
       icon: <FileTextOutlined style={{ color: "#13c2c2" }} />,
       label: "Đề thi",
-    },
-    {
-      key: "/shuffle-exam",
-      icon: <SwapOutlined style={{ color: "#f759ab" }} />,
-      label: "Trộn đề thi",
     },
     {
       key: "/sessions",

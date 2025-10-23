@@ -9,16 +9,28 @@ import {
   Form,
   Popconfirm,
   Checkbox,
+  Card,
+  Space,
+  Row,
+  Col,
 } from "antd";
 import axiosClient from "../api/axiosClient";
 
 export default function QuestionPage() {
   const [questions, setQuestions] = useState([]);
+  const [filteredQuestions, setFilteredQuestions] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [chapters, setChapters] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [form] = Form.useForm();
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    subjectId: null,
+    chapterId: null,
+    searchText: '',
+  });
 
   //  Lấy danh sách câu hỏi
   const loadQuestions = async () => {
@@ -46,6 +58,71 @@ export default function QuestionPage() {
     loadQuestions();
     loadSubjects();
   }, []);
+
+  // Effect để lọc câu hỏi khi filters thay đổi
+  useEffect(() => {
+    applyFilters();
+  }, [questions, filters]);
+
+  // Function để lọc câu hỏi
+  const applyFilters = () => {
+    let filtered = [...questions];
+
+    // Lọc theo môn học
+    if (filters.subjectId) {
+      filtered = filtered.filter(q => q.subject_id === filters.subjectId);
+    }
+
+    // Lọc theo chương
+    if (filters.chapterId) {
+      filtered = filtered.filter(q => q.chapter_id === filters.chapterId);
+    }
+
+    // Lọc theo text search
+    if (filters.searchText) {
+      const searchLower = filters.searchText.toLowerCase();
+      filtered = filtered.filter(q => 
+        q.content.toLowerCase().includes(searchLower) ||
+        q.subject_name.toLowerCase().includes(searchLower) ||
+        q.chapter_name.toLowerCase().includes(searchLower)
+      );
+    }
+
+    setFilteredQuestions(filtered);
+  };
+
+  // Xử lý thay đổi filter
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+
+    // Reset chapter filter khi thay đổi subject
+    if (key === 'subjectId') {
+      setFilters(prev => ({
+        ...prev,
+        subjectId: value,
+        chapterId: null
+      }));
+      // Load chapters cho subject mới
+      if (value) {
+        loadChaptersBySubject(value);
+      } else {
+        setChapters([]);
+      }
+    }
+  };
+
+  // Reset filters
+  const resetFilters = () => {
+    setFilters({
+      subjectId: null,
+      chapterId: null,
+      searchText: '',
+    });
+    setChapters([]);
+  };
 
   // Mở modal thêm mới
   const showModal = () => {
@@ -188,11 +265,101 @@ export default function QuestionPage() {
     <div style={{ padding: 24 }}>
       <h2>Ngân hàng câu hỏi</h2>
 
-      <Button type="primary" onClick={showModal} style={{ marginBottom: 16 }}>
+      {/* Filter Section */}
+      <Card title="Bộ lọc" style={{ marginBottom: 16 }}>
+        <Row gutter={16}>
+          <Col span={6}>
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ fontWeight: 'bold' }}>Tìm kiếm:</label>
+            </div>
+            <Input.Search
+              placeholder="Tìm theo nội dung, môn học, chương..."
+              value={filters.searchText}
+              onChange={(e) => handleFilterChange('searchText', e.target.value)}
+              allowClear
+            />
+          </Col>
+          <Col span={6}>
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ fontWeight: 'bold' }}>Môn học:</label>
+            </div>
+            <Select
+              placeholder="Chọn môn học"
+              style={{ width: '100%' }}
+              value={filters.subjectId}
+              onChange={(value) => handleFilterChange('subjectId', value)}
+              allowClear
+            >
+              {subjects.map((subject) => (
+                <Select.Option key={subject.id} value={subject.id}>
+                  {subject.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </Col>
+          <Col span={6}>
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ fontWeight: 'bold' }}>Chương:</label>
+            </div>
+            <Select
+              placeholder="Chọn chương"
+              style={{ width: '100%' }}
+              value={filters.chapterId}
+              onChange={(value) => handleFilterChange('chapterId', value)}
+              allowClear
+              disabled={!filters.subjectId}
+            >
+              {chapters.map((chapter) => (
+                <Select.Option key={chapter.id} value={chapter.id}>
+                  {chapter.chapter_number}. {chapter.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </Col>
+          <Col span={6}>
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ fontWeight: 'bold' }}>Thao tác:</label>
+            </div>
+            <Space>
+              <Button onClick={resetFilters}>
+                Xóa bộ lọc
+              </Button>
+              <Button type="primary" onClick={showModal}>
         + Thêm câu hỏi
       </Button>
+            </Space>
+          </Col>
+        </Row>
+        
+        {/* Filter Summary */}
+        <div style={{ marginTop: 16, padding: 12, background: '#f5f5f5', borderRadius: 6 }}>
+          <Space>
+            <span><strong>Kết quả:</strong> {filteredQuestions.length} câu hỏi</span>
+            {filters.subjectId && (
+              <span>• Môn: {subjects.find(s => s.id === filters.subjectId)?.name}</span>
+            )}
+            {filters.chapterId && (
+              <span>• Chương: {chapters.find(c => c.id === filters.chapterId)?.name}</span>
+            )}
+            {filters.searchText && (
+              <span>• Tìm kiếm: "{filters.searchText}"</span>
+            )}
+          </Space>
+        </div>
+      </Card>
 
-      <Table dataSource={questions} columns={columns} rowKey="id" />
+      <Table 
+        dataSource={filteredQuestions} 
+        columns={columns} 
+        rowKey="id"
+        pagination={{ 
+          pageSize: 10,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total, range) => 
+            `${range[0]}-${range[1]} của ${total} câu hỏi`
+        }}
+      />
 
       <Modal
         title={editingQuestion ? "Chỉnh sửa câu hỏi" : "Thêm câu hỏi mới"}

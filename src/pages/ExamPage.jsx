@@ -1,16 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   Button,
+  Space,
   Modal,
   Form,
   Input,
-  InputNumber,
   Select,
-  message,
+  InputNumber,
   Checkbox,
+  message,
   Popconfirm,
 } from "antd";
+import { PlusOutlined, ReloadOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import axiosClient from "../api/axiosClient";
 
 export default function ExamPage() {
@@ -21,6 +24,7 @@ export default function ExamPage() {
   const [open, setOpen] = useState(false);
   const [editingExam, setEditingExam] = useState(null);
   const [form] = Form.useForm();
+  const navigate = useNavigate();
 
   // Load dữ liệu
   const loadData = async () => {
@@ -39,10 +43,16 @@ export default function ExamPage() {
     loadData();
   }, []);
 
-  // 🟢 Tạo mới
+  // Tạo mới
   const handleCreate = async () => {
     try {
       const values = await form.validateFields();
+      
+      if (selectedQuestions.length === 0) {
+        message.error("Vui lòng chọn ít nhất một câu hỏi");
+        return;
+      }
+
       const payload = {
         subject_id: values.subject_id,
         title: values.title,
@@ -51,11 +61,9 @@ export default function ExamPage() {
       };
 
       if (editingExam) {
-        // 🔹 Nếu đang chỉnh sửa
         await axiosClient.put(`/exams/${editingExam.id}`, payload);
         message.success("Cập nhật đề thi thành công!");
       } else {
-        // 🔹 Nếu đang tạo mới
         await axiosClient.post("/exams", payload);
         message.success("Tạo đề thi thành công!");
       }
@@ -70,14 +78,14 @@ export default function ExamPage() {
     }
   };
 
-  // 🟢 Xóa
+  // Xóa
   const handleDelete = async (id) => {
     await axiosClient.delete(`/exams/${id}`);
     message.success("Xóa đề thi thành công!");
     loadData();
   };
 
-  // 🟢 Chỉnh sửa
+  // Chỉnh sửa
   const handleEdit = async (record) => {
     setEditingExam(record);
     form.setFieldsValue({
@@ -85,30 +93,55 @@ export default function ExamPage() {
       title: record.title,
       duration: record.duration,
     });
-    setOpen(true);
-
-    // Tải danh sách câu hỏi thuộc môn học
+    
+    // Load câu hỏi của môn học
     await loadQuestionsBySubject(record.subject_id);
-    // Tải câu hỏi của đề (nếu có)
-    const res = await axiosClient.get(`/exam-questions/${record.id}`);
-    setSelectedQuestions(res.data.map((q) => q.question_id));
+    
+    // Load câu hỏi đã chọn (cần implement API)
+    setSelectedQuestions([]);
+    
+    setOpen(true);
   };
 
-  // Cấu hình bảng
+  // Cấu hình cột
   const columns = [
-    { title: "ID", dataIndex: "id", width: 60 },
-    { title: "Tên đề thi", dataIndex: "title" },
-    { title: "Môn học", dataIndex: "subject_name" },
-    { title: "Thời gian (phút)", dataIndex: "duration" },
     {
-      title: "Hành động",
+      title: "ID",
+      dataIndex: "id",
+      width: 60,
+    },
+    {
+      title: "Tên đề thi",
+      dataIndex: "title",
+    },
+    {
+      title: "Môn học",
+      dataIndex: "subject_name",
+    },
+    {
+      title: "Thời gian (phút)",
+      dataIndex: "duration",
+    },
+    {
+      title: "Thao tác",
+      width: 300,
       render: (_, record) => (
         <>
-          <Button type="link" onClick={() => handleEdit(record)}>
+          <Button
+            type="primary"
+            icon={<ReloadOutlined />}
+            onClick={() => navigate(`/shuffle-exam/${record.id}`)}
+          >
+            Trộn đề
+          </Button>
+          <Button
+            type="link"
+            onClick={() => handleEdit(record)}
+          >
             Sửa
           </Button>
           <Popconfirm
-            title="Xác nhận xóa?"
+            title="Bạn có chắc chắn muốn xóa đề thi này?"
             onConfirm={() => handleDelete(record.id)}
           >
             <Button type="link" danger>
@@ -120,23 +153,19 @@ export default function ExamPage() {
     },
   ];
 
-  //  JSX
   return (
     <div style={{ padding: 24 }}>
       <h2>Danh sách đề thi</h2>
 
-      <Button
-        type="primary"
-        onClick={() => {
-          setOpen(true);
-          setEditingExam(null);
-          form.resetFields();
-          setSelectedQuestions([]);
-        }}
-        style={{ marginBottom: 16 }}
-      >
-        + Tạo đề thi
-      </Button>
+      <Space style={{ marginBottom: 16 }}>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => navigate("/create-exam")}
+        >
+          Tạo đề thi mới
+        </Button>
+      </Space>
 
       <Table dataSource={exams} columns={columns} rowKey="id" />
 
@@ -201,6 +230,7 @@ export default function ExamPage() {
                       ? q.content.slice(0, 80) + "..."
                       : q.content}
                   </Checkbox>
+                  <br />
                 </div>
               ))}
             </Checkbox.Group>
