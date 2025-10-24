@@ -12,27 +12,28 @@ import {
   Checkbox,
 } from "antd";
 import { UserOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
-import axiosClient from "../api/axiosClient";
+import axiosTeacherClient from "../api/axiosTeacherClient";
 
 const { Text, Title } = Typography;
 const { Option } = Select;
 
 export default function ProctorSelector({ 
-  value = [], 
+  value = null, 
   onChange, 
   disabled = false,
   style = {} 
 }) {
   const [proctors, setProctors] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedProctors, setSelectedProctors] = useState(value || []);
+  const [selectedProctor, setSelectedProctor] = useState(value || null);
 
   // Load danh sách giám thị
   const loadProctors = async () => {
     setLoading(true);
     try {
-      const res = await axiosClient.get("/proctors");
-      setProctors(res.data);
+      const res = await axiosTeacherClient.get("/proctors");
+      console.log("Proctors response:", res.data);
+      setProctors(res.data.proctors || res.data);
     } catch (error) {
       console.error("Error loading proctors:", error);
       message.error("Không thể tải danh sách giám thị");
@@ -45,37 +46,25 @@ export default function ProctorSelector({
     loadProctors();
   }, []);
 
-  // Cập nhật selectedProctors khi value thay đổi
+  // Cập nhật selectedProctor khi value thay đổi
   useEffect(() => {
-    setSelectedProctors(value || []);
+    setSelectedProctor(value || null);
   }, [value]);
 
-  // Thêm giám thị
-  const handleAddProctor = (proctorId) => {
-    if (selectedProctors.find(p => p.id === proctorId)) {
-      message.warning("Giám thị đã được chọn");
-      return;
-    }
-
+  // Chọn giám thị
+  const handleSelectProctor = (proctorId) => {
     const proctor = proctors.find(p => p.id === proctorId);
     if (proctor) {
-      const newSelected = [...selectedProctors, proctor];
-      setSelectedProctors(newSelected);
-      onChange?.(newSelected);
+      setSelectedProctor(proctor);
+      onChange?.(proctor);
     }
   };
 
-  // Xóa giám thị
-  const handleRemoveProctor = (proctorId) => {
-    const newSelected = selectedProctors.filter(p => p.id !== proctorId);
-    setSelectedProctors(newSelected);
-    onChange?.(newSelected);
+  // Xóa giám thị đã chọn
+  const handleRemoveProctor = () => {
+    setSelectedProctor(null);
+    onChange?.(null);
   };
-
-  // Lấy danh sách giám thị chưa được chọn
-  const availableProctors = proctors.filter(
-    proctor => !selectedProctors.find(selected => selected.id === proctor.id)
-  );
 
   return (
     <Card 
@@ -84,17 +73,17 @@ export default function ProctorSelector({
       style={style}
       extra={
         <Text type="secondary">
-          {selectedProctors.length} giám thị đã chọn
+          {selectedProctor ? "1 giám thị đã chọn" : "Chưa chọn giám thị"}
         </Text>
       }
     >
-      {/* Danh sách giám thị đã chọn */}
-      {selectedProctors.length > 0 && (
+      {/* Giám thị đã chọn */}
+      {selectedProctor && (
         <div style={{ marginBottom: 16 }}>
           <Title level={5}>Giám thị đã chọn:</Title>
           <List
             size="small"
-            dataSource={selectedProctors}
+            dataSource={[selectedProctor]}
             renderItem={(proctor) => (
               <List.Item
                 actions={[
@@ -103,7 +92,7 @@ export default function ProctorSelector({
                     danger
                     size="small"
                     icon={<DeleteOutlined />}
-                    onClick={() => handleRemoveProctor(proctor.id)}
+                    onClick={handleRemoveProctor}
                     disabled={disabled}
                   >
                     Xóa
@@ -121,36 +110,38 @@ export default function ProctorSelector({
         </div>
       )}
 
-      {/* Chọn giám thị mới */}
-      <div>
-        <Text strong>Thêm giám thị:</Text>
-        <Select
-          placeholder="Chọn giám thị"
-          style={{ width: "100%", marginTop: 8 }}
-          loading={loading}
-          disabled={disabled}
-          showSearch
-          filterOption={(input, option) =>
-            option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-          }
-          onSelect={handleAddProctor}
-          notFoundContent={loading ? "Đang tải..." : "Không có giám thị khả dụng"}
-        >
-          {availableProctors.map((proctor) => (
-            <Option key={proctor.id} value={proctor.id}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Avatar icon={<UserOutlined />} size="small" />
-                <div>
-                  <div>{proctor.full_name}</div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    {proctor.email}
-                  </Text>
+      {/* Chọn giám thị - chỉ hiển thị khi chưa chọn */}
+      {!selectedProctor && (
+        <div>
+          <Text strong>Chọn giám thị:</Text>
+          <Select
+            placeholder="Chọn giám thị"
+            style={{ width: "100%", marginTop: 8 }}
+            loading={loading}
+            disabled={disabled}
+            showSearch
+            filterOption={(input, option) =>
+              option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+            }
+            onSelect={handleSelectProctor}
+            notFoundContent={loading ? "Đang tải..." : "Không có giám thị khả dụng"}
+          >
+            {proctors.map((proctor) => (
+              <Option key={proctor.id} value={proctor.id}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Avatar icon={<UserOutlined />} size="small" />
+                  <div>
+                    <div>{proctor.full_name}</div>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {proctor.email}
+                    </Text>
+                  </div>
                 </div>
-              </div>
-            </Option>
-          ))}
-        </Select>
-      </div>
+              </Option>
+            ))}
+          </Select>
+        </div>
+      )}
 
       {/* Thông báo nếu không có giám thị */}
       {proctors.length === 0 && !loading && (
