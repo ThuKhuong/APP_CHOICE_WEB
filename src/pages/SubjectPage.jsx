@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table, Button, Modal, Form, Input, message, Popconfirm } from "antd";
-import axiosClient from "../api/axiosClient";
+import axiosTeacherClient from "../api/axiosTeacherClient";
 
 export default function SubjectPage() {
   const [subjects, setSubjects] = useState([]);
@@ -11,7 +11,7 @@ export default function SubjectPage() {
 
   const loadSubjects = async () => {
     try {
-      const res = await axiosClient.get("/subjects");
+      const res = await axiosTeacherClient.get("/subjects");
       setSubjects(res.data);
     } catch (err) {
       message.error("Không tải được danh sách môn học");
@@ -27,7 +27,7 @@ export default function SubjectPage() {
       const values = await form.validateFields();
 
       if (editMode) {
-        await axiosClient.put(`/subjects/${editingId}`, { name: values.name });
+        await axiosTeacherClient.put(`/subjects/${editingId}`, { name: values.name });
         message.success("Cập nhật môn học thành công!");
         form.resetFields();
         setOpen(false);
@@ -36,7 +36,7 @@ export default function SubjectPage() {
         loadSubjects();
       } else {
         // Thêm môn học mới và lấy ID trả về
-        const res = await axiosClient.post("/subjects", { name: values.name });
+        const res = await axiosTeacherClient.post("/subjects", { name: values.name });
         message.success("Thêm môn học thành công!");
         form.resetFields();
         setOpen(false);
@@ -65,7 +65,7 @@ export default function SubjectPage() {
 
   const handleDelete = async (id) => {
     try {
-      await axiosClient.delete(`/subjects/${id}`);
+      await axiosTeacherClient.delete(`/subjects/${id}`);
       message.success("Xóa môn học thành công!");
       loadSubjects();
     } catch {
@@ -84,7 +84,7 @@ export default function SubjectPage() {
 
   const loadChapters = async (subjectId) => {
     try {
-      const res = await axiosClient.get(`/subjects/${subjectId}/chapters`);
+      const res = await axiosTeacherClient.get(`/subjects/${subjectId}/chapters`);
       setChapters(res.data);
     } catch {
       message.error("Không tải được danh sách chương");
@@ -101,10 +101,10 @@ export default function SubjectPage() {
     try {
       const values = await chapterForm.validateFields();
       if (chapterEditMode) {
-        await axiosClient.put(`/chapters/${editingChapterId}`, values);
+        await axiosTeacherClient.put(`/chapters/${editingChapterId}`, values);
         message.success("Cập nhật chương thành công!");
       } else {
-        await axiosClient.post(
+        await axiosTeacherClient.post(
           `/subjects/${selectedSubject.id}/chapters`,
           values
         );
@@ -132,7 +132,7 @@ export default function SubjectPage() {
 
   const handleDeleteChapter = async (id) => {
     try {
-      await axiosClient.delete(`/chapters/${id}`);
+      await axiosTeacherClient.delete(`/chapters/${id}`);
       message.success("Xóa chương thành công!");
       loadChapters(selectedSubject.id);
     } catch (err) {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Input, Button, Card, Typography, message } from "antd";
+import { Input, Button, Card, Typography, message, Alert } from "antd";
 import { MailOutlined, LockOutlined, LoginOutlined } from "@ant-design/icons";
 import axiosClient from "../api/axiosClient";
 
@@ -9,16 +9,59 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      message.error("Vui lòng nhập đầy đủ thông tin");
+      return;
+    }
+
     setLoading(true);
+    setError(""); // Clear previous error
     try {
       const res = await axiosClient.post("/auth/login", { email, password });
+      
+      // Lưu token và user data vào localStorage
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      
       message.success("Đăng nhập thành công!");
-      window.location.href = "/subjects";
+      
+      // Redirect dựa trên roles (multi-role support)
+      const user = res.data.user;
+      const userRoles = Array.isArray(user.role) ? user.role : [user.role];
+      
+      // Ưu tiên redirect theo thứ tự: admin > proctor > teacher
+      if (userRoles.includes("admin")) {
+        window.location.href = "/admin/dashboard";
+      } else if (userRoles.includes("proctor")) {
+        window.location.href = "/proctor/dashboard";
+      } else if (userRoles.includes("teacher")) {
+        window.location.href = "/subjects";
+      } else {
+        window.location.href = "/subjects";
+      }
     } catch (err) {
-      message.error("Sai email hoặc mật khẩu");
+      console.error("Login error:", err);
+      
+      // Hiển thị lỗi nhanh chóng
+      let errorMessage = "Đăng nhập thất bại";
+      
+      if (err.response) {
+        // Lỗi từ server (401, 403, 404, 500, etc.)
+        errorMessage = err.response.data?.message || "Đăng nhập thất bại";
+      } else if (err.request) {
+        // Lỗi network
+        errorMessage = "Không thể kết nối đến server";
+      } else {
+        // Lỗi khác
+        errorMessage = "Có lỗi xảy ra";
+      }
+      
+      // Hiển thị lỗi ngay lập tức
+      setError(errorMessage);
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -91,18 +134,33 @@ export default function LoginPage() {
               ĐĂNG NHẬP
             </Title>
 
+            {error && (
+              <Alert
+                message={error}
+                type="error"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+            )}
+
             <Input
               prefix={<MailOutlined />}
               placeholder="Email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (error) setError(""); // Clear error when typing
+              }}
               style={{ marginBottom: 12 }}
             />
             <Input.Password
               prefix={<LockOutlined />}
               placeholder="Mật khẩu"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (error) setError(""); // Clear error when typing
+              }}
               style={{ marginBottom: 20 }}
             />
             <Button

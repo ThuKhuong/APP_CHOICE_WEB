@@ -14,7 +14,7 @@ import {
 } from "antd";
 import { PlusOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import axiosClient from "../api/axiosClient";
+import axiosTeacherClient from "../api/axiosTeacherClient";
 
 export default function ExamPage() {
   const [exams, setExams] = useState([]);
@@ -28,14 +28,14 @@ export default function ExamPage() {
 
   // Load dữ liệu
   const loadData = async () => {
-    const ex = await axiosClient.get("/exams");
+    const ex = await axiosTeacherClient.get("/exams");
     setExams(ex.data);
-    const sub = await axiosClient.get("/subjects");
+    const sub = await axiosTeacherClient.get("/subjects");
     setSubjects(sub.data);
   };
 
   const loadQuestionsBySubject = async (subjectId) => {
-    const res = await axiosClient.get(`/questions/${subjectId}`);
+    const res = await axiosTeacherClient.get(`/questions/${subjectId}`);
     setQuestions(res.data);
   };
 
@@ -61,10 +61,10 @@ export default function ExamPage() {
       };
 
       if (editingExam) {
-        await axiosClient.put(`/exams/${editingExam.id}`, payload);
+        await axiosTeacherClient.put(`/exams/${editingExam.id}`, payload);
         message.success("Cập nhật đề thi thành công!");
       } else {
-        await axiosClient.post("/exams", payload);
+        await axiosTeacherClient.post("/exams", payload);
         message.success("Tạo đề thi thành công!");
       }
 
@@ -80,7 +80,7 @@ export default function ExamPage() {
 
   // Xóa
   const handleDelete = async (id) => {
-    await axiosClient.delete(`/exams/${id}`);
+    await axiosTeacherClient.delete(`/exams/${id}`);
     message.success("Xóa đề thi thành công!");
     loadData();
   };

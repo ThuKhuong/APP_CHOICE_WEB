@@ -14,7 +14,7 @@ import {
   Row,
   Col,
 } from "antd";
-import axiosClient from "../api/axiosClient";
+import axiosTeacherClient from "../api/axiosTeacherClient";
 
 export default function QuestionPage() {
   const [questions, setQuestions] = useState([]);
@@ -35,7 +35,7 @@ export default function QuestionPage() {
   //  Lấy danh sách câu hỏi
   const loadQuestions = async () => {
     try {
-      const res = await axiosClient.get("/questions");
+      const res = await axiosTeacherClient.get("/questions");
       setQuestions(res.data);
     } catch {
       message.error("Không tải được danh sách câu hỏi");
@@ -44,13 +44,13 @@ export default function QuestionPage() {
 
   //  Lấy danh sách môn học
   const loadSubjects = async () => {
-    const res = await axiosClient.get("/subjects");
+    const res = await axiosTeacherClient.get("/subjects");
     setSubjects(res.data);
   };
 
   // Lấy danh sách chương theo môn học
   const loadChaptersBySubject = async (subjectId) => {
-    const res = await axiosClient.get(`/subjects/${subjectId}/chapters`);
+    const res = await axiosTeacherClient.get(`/subjects/${subjectId}/chapters`);
     setChapters(res.data);
   };
 
@@ -171,11 +171,11 @@ export default function QuestionPage() {
 
       if (editingQuestion) {
         // Nếu đang sửa
-        await axiosClient.put(`/questions/${editingQuestion.id}`, values);
+        await axiosTeacherClient.put(`/questions/${editingQuestion.id}`, values);
         message.success("Cập nhật câu hỏi thành công!");
       } else {
         // Nếu đang thêm mới
-        await axiosClient.post("/questions", values);
+        await axiosTeacherClient.post("/questions", values);
         message.success("Thêm câu hỏi thành công!");
       }
 
@@ -195,7 +195,7 @@ export default function QuestionPage() {
   //  Xóa câu hỏi
   const handleDelete = async (id) => {
     try {
-      await axiosClient.delete(`/questions/${id}`);
+      await axiosTeacherClient.delete(`/questions/${id}`);
       message.success("Xóa câu hỏi thành công!");
       loadQuestions();
     } catch {
@@ -325,16 +325,14 @@ export default function QuestionPage() {
                 Xóa bộ lọc
               </Button>
               <Button type="primary" onClick={showModal}>
-        + Thêm câu hỏi
-      </Button>
+                + Thêm câu hỏi
+              </Button>
             </Space>
           </Col>
         </Row>
         
         {/* Filter Summary */}
-        <div style={{ marginTop: 16, padding: 12, background: '#f5f5f5', borderRadius: 6 }}>
           <Space>
-            <span><strong>Kết quả:</strong> {filteredQuestions.length} câu hỏi</span>
             {filters.subjectId && (
               <span>• Môn: {subjects.find(s => s.id === filters.subjectId)?.name}</span>
             )}
@@ -345,7 +343,6 @@ export default function QuestionPage() {
               <span>• Tìm kiếm: "{filters.searchText}"</span>
             )}
           </Space>
-        </div>
       </Card>
 
       <Table 
@@ -354,8 +351,6 @@ export default function QuestionPage() {
         rowKey="id"
         pagination={{ 
           pageSize: 10,
-          showSizeChanger: true,
-          showQuickJumper: true,
           showTotal: (total, range) => 
             `${range[0]}-${range[1]} của ${total} câu hỏi`
         }}

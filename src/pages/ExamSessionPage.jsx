@@ -10,7 +10,7 @@ import {
   message,
   Popconfirm,
 } from "antd";
-import axiosClient from "../api/axiosClient";
+import axiosTeacherClient from "../api/axiosTeacherClient";
 import ProctorSelector from "../components/ProctorSelector";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
@@ -27,9 +27,9 @@ export default function ExamSessionPage() {
   // Tải dữ liệu
   const loadData = async () => {
     try {
-      const ses = await axiosClient.get("/sessions");
+      const ses = await axiosTeacherClient.get("/sessions");
       setSessions(ses.data);
-      const ex = await axiosClient.get("/exams");
+      const ex = await axiosTeacherClient.get("/exams");
       setExams(ex.data);
     } catch (err) {
       message.error("Không tải được dữ liệu");
@@ -122,16 +122,16 @@ export default function ExamSessionPage() {
       };
 
       if (editingSession) {
-        await axiosClient.put(`/sessions/${editingSession.id}`, payload);
+        await axiosTeacherClient.put(`/sessions/${editingSession.id}`, payload);
         message.success("Cập nhật ca thi thành công!");
       } else {
-        const sessionResponse = await axiosClient.post("/sessions", payload);
+        const sessionResponse = await axiosTeacherClient.post("/sessions", payload);
         message.success("Tạo ca thi thành công!");
         
         // Phân công giám thị nếu có
         if (selectedProctors.length > 0) {
           try {
-            await axiosClient.post(`/sessions/${sessionResponse.data.id}/proctors`, {
+            await axiosTeacherClient.post(`/sessions/${sessionResponse.data.id}/proctors`, {
               proctorIds: selectedProctors.map(p => p.id)
             });
             message.success("Phân công giám thị thành công!");
@@ -155,7 +155,7 @@ export default function ExamSessionPage() {
   //  Xóa ca thi
   const handleDelete = async (id) => {
     try {
-      await axiosClient.delete(`/sessions/${id}`);
+      await axiosTeacherClient.delete(`/sessions/${id}`);
       message.success("Xóa ca thi thành công!");
       loadData();
     } catch {

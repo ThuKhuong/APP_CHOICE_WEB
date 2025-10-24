@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table, Button, Breadcrumb, message } from "antd";
-import axiosClient from "../api/axiosClient";
+import axiosTeacherClient from "../api/axiosTeacherClient";
 import { useParams, useNavigate } from "react-router-dom";
 
 export default function ExamResultDetailPage() {
@@ -11,7 +11,7 @@ export default function ExamResultDetailPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await axiosClient.get(`/exam-sessions/${id}/results`);
+        const res = await axiosTeacherClient.get(`/exam-sessions/${id}/results`);
         setData(res.data);
       } catch {
         message.error("Không tải được kết quả ca thi");

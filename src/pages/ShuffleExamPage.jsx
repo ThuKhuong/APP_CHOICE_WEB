@@ -21,7 +21,7 @@ import {
   PlusOutlined,
   ArrowLeftOutlined 
 } from "@ant-design/icons";
-import axiosClient from "../api/axiosClient";
+import axiosTeacherClient from "../api/axiosTeacherClient";
 
 const { Title, Text } = Typography;
 
@@ -40,7 +40,7 @@ export default function ShuffleExamPage() {
   // Load thông tin đề thi
   const loadExam = async () => {
     try {
-      const res = await axiosClient.get(`/exams/${examId}`);
+      const res = await axiosTeacherClient.get(`/exams/${examId}`);
       setExam(res.data);
     } catch (error) {
       console.error("Error loading exam:", error);
@@ -52,7 +52,7 @@ export default function ShuffleExamPage() {
   const loadExamSets = async () => {
     setLoading(true);
     try {
-      const res = await axiosClient.get(`/exams/${examId}/sets`);
+      const res = await axiosTeacherClient.get(`/exams/${examId}/sets`);
       setExamSets(res.data);
     } catch (error) {
       console.error("Error loading exam sets:", error);
@@ -71,7 +71,7 @@ export default function ShuffleExamPage() {
   const handleCreateExamSets = async (count) => {
     setShuffling(true);
     try {
-      await axiosClient.post(`/exams/${examId}/shuffle`, { count });
+      await axiosTeacherClient.post(`/exams/${examId}/shuffle`, { count });
       message.success(`Đã tạo ${count} bộ đề thi thành công!`);
       loadExamSets();
     } catch (error) {
@@ -85,7 +85,7 @@ export default function ShuffleExamPage() {
   // Xem chi tiết bộ đề
   const handleViewExamSet = async (examSetId) => {
     try {
-      const res = await axiosClient.get(`/exam-sets/${examSetId}/questions`);
+      const res = await axiosTeacherClient.get(`/exam-sets/${examSetId}/questions`);
       setExamSetQuestions(res.data);
       setSelectedExamSet(examSets.find(set => set.id === examSetId));
       setDetailModalVisible(true);

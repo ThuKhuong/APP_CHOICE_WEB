@@ -9,7 +9,7 @@ import {
   Row,
   Col,
 } from "antd";
-import axiosClient from "../api/axiosClient";
+import axiosTeacherClient from "../api/axiosTeacherClient";
 import { useParams, useNavigate } from "react-router-dom";
 
 export default function StudentAttemptDetailPage() {
@@ -20,7 +20,7 @@ export default function StudentAttemptDetailPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await axiosClient.get(
+        const res = await axiosTeacherClient.get(
           `/exam-sessions/${sessionId}/student/${studentId}`
         );
         setData(res.data);

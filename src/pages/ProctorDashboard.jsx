@@ -1,389 +1,620 @@
-import React, { useEffect, useState } from "react";
-import { Card, Row, Col, Table, Badge, Progress, Statistic, Alert } from "antd";
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Table,
+  Tag,
+  Button,
+  Space,
+  Typography,
+  Alert,
+  Spin,
+  Empty,
+  Modal,
+  Form,
+  Input,
+  Select,
+  message,
+  Timeline,
+  Badge,
+} from "antd";
 import { 
   UserOutlined, 
-  ExclamationCircleOutlined, 
   ClockCircleOutlined,
-  CheckCircleOutlined 
+  ExclamationCircleOutlined, 
+  EyeOutlined,
+  WarningOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  PlayCircleOutlined,
 } from "@ant-design/icons";
-import dayjs from "dayjs";
-import axiosProctorClient from "../api/axiosProctorClient";
+import axiosClient from "../api/axiosClient";
+import { useNavigate } from "react-router-dom";
+
+const { Title, Text } = Typography;
+const { Option } = Select;
 
 export default function ProctorDashboard() {
+  const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
+  const [assignedSessions, setAssignedSessions] = useState([]);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [sessionDetails, setSessionDetails] = useState(null);
+  const [violationModalVisible, setViolationModalVisible] = useState(false);
+  const [incidentModalVisible, setIncidentModalVisible] = useState(false);
+  const [violationForm] = Form.useForm();
+  const [incidentForm] = Form.useForm();
+  const navigate = useNavigate();
+
+  // Load dashboard data
+  const loadDashboard = async () => {
+    setLoading(true);
+    try {
+      const res = await axiosClient.get("/proctor/dashboard");
+      setDashboardData(res.data);
+    } catch (error) {
+      console.error("Error loading dashboard:", error);
+      message.error("Không thể tải dữ liệu dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load assigned sessions
+  const loadAssignedSessions = async () => {
+    try {
+      const res = await axiosClient.get("/proctor/assigned-sessions");
+      setAssignedSessions(res.data.sessions);
+    } catch (error) {
+      console.error("Error loading assigned sessions:", error);
+      message.error("Không thể tải danh sách ca thi được phân công");
+    }
+  };
+
+  // Load session details
+  const loadSessionDetails = async (sessionId) => {
+    try {
+      const res = await axiosClient.get(`/proctor/sessions/${sessionId}/details`);
+      setSessionDetails(res.data);
+    } catch (error) {
+      console.error("Error loading session details:", error);
+      message.error("Không thể tải chi tiết ca thi");
+    }
+  };
 
   useEffect(() => {
-    loadDashboardData();
-    
-    // Cập nhật dữ liệu mỗi 30 giây
-    const interval = setInterval(loadDashboardData, 30000);
+    loadDashboard();
+    loadAssignedSessions();
+  }, []);
+
+  // Auto refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadDashboard();
+    }, 30000);
+
     return () => clearInterval(interval);
   }, []);
 
-  const loadDashboardData = async () => {
+  // Handle record violation
+  const handleRecordViolation = async (values) => {
     try {
-      // Gọi API thực tế
-      const response = await axiosProctorClient.get("/dashboard");
-      setDashboardData(response.data);
+      await axiosClient.post("/proctor/violations", values);
+      message.success("Ghi nhận vi phạm thành công");
+      setViolationModalVisible(false);
+      violationForm.resetFields();
+      loadDashboard();
     } catch (error) {
-      console.error("Lỗi tải dashboard:", error);
-      // Fallback to mock data nếu API lỗi
-      const mockData = {
-      activeSessions: [
-        {
-          session_id: 1,
-          exam_title: "Kiểm tra giữa kỳ - Java",
-          room: "A101",
-          total_students: 45,
-          taking: 30,
-          submitted: 12,
-          disconnected: 2,
-          absent: 1,
-          violations: 8,
-          start_time: "08:00",
-          end_time: "10:00",
-          time_remaining: 3600
-        },
-        {
-          session_id: 2,
-          exam_title: "Thi cuối kỳ - Database",
-          room: "B203", 
-          total_students: 38,
-          taking: 35,
-          submitted: 2,
-          disconnected: 1,
-          absent: 0,
-          violations: 3,
-          start_time: "14:00",
-          end_time: "16:00",
-          time_remaining: 5400
-        }
-      ],
-      recentViolations: [
-        {
-          id: 1,
-          student_name: "Nguyễn Văn A",
-          room: "A101",
-          type: "tab_out",
-          description: "Rời tab thi 3 lần liên tiếp",
-          timestamp: "2025-10-16T09:30:00Z",
-          severity: "high"
-        },
-        {
-          id: 2,
-          student_name: "Trần Thị B", 
-          room: "B203",
-          type: "multi_device",
-          description: "Phát hiện đăng nhập từ 2 thiết bị",
-          timestamp: "2025-10-16T09:25:00Z",
-          severity: "high"
-        },
-        {
-          id: 3,
-          student_name: "Lê Văn C",
-          room: "A101", 
-          type: "timeout",
-          description: "Mất kết nối trong 2 phút",
-          timestamp: "2025-10-16T09:20:00Z",
-          severity: "medium"
-        }
-      ],
-      pendingIncidents: [
-        {
-          id: 1,
-          student_name: "Nguyễn Văn D",
-          room: "A101",
-          description: "Máy tính bị treo, yêu cầu khởi động lại",
-          timestamp: "2025-10-16T09:15:00Z"
-        },
-        {
-          id: 2,
-          student_name: "Phạm Thị E",
-          room: "B203",
-          description: "Không thể tải được câu hỏi",
-          timestamp: "2025-10-16T09:10:00Z"
-        }
-      ],
-      statistics: {
-        totalStudents: 83,
-        totalTaking: 65,
-        totalSubmitted: 14,
-        totalDisconnected: 3,
-        totalViolations: 11,
-        totalIncidents: 2
-      }
-      };
-
-      setDashboardData(mockData);
+      console.error("Error recording violation:", error);
+      message.error("Không thể ghi nhận vi phạm");
     }
   };
 
+  // Handle report incident
+  const handleReportIncident = async (values) => {
+    try {
+      await axiosClient.post("/proctor/incidents", {
+        ...values,
+        session_id: selectedSession?.id,
+      });
+      message.success("Báo cáo sự cố thành công");
+      setIncidentModalVisible(false);
+      incidentForm.resetFields();
+    } catch (error) {
+      console.error("Error reporting incident:", error);
+      message.error("Không thể báo cáo sự cố");
+    }
+  };
+
+  // Get status color
   const getStatusColor = (status) => {
-    const colors = {
-      taking: "#1890ff",
-      submitted: "#52c41a", 
-      disconnected: "#ff4d4f",
-      absent: "#d9d9d9"
-    };
-    return colors[status] || "#d9d9d9";
+    switch (status) {
+      case "in_progress":
+        return "processing";
+      case "submitted":
+        return "success";
+      case "disconnected":
+        return "warning";
+      case "not_started":
+        return "default";
+      default:
+        return "default";
+    }
   };
 
+  // Get status text
+  const getStatusText = (status) => {
+    switch (status) {
+      case "in_progress":
+        return "Đang thi";
+      case "submitted":
+        return "Đã nộp bài";
+      case "disconnected":
+        return "Mất kết nối";
+      case "not_started":
+        return "Chưa bắt đầu";
+      default:
+        return status;
+    }
+  };
+
+  // Get violation severity color
   const getSeverityColor = (severity) => {
-    const colors = {
-      low: "#52c41a",
-      medium: "#faad14",
-      high: "#ff4d4f"
-    };
-    return colors[severity] || "#d9d9d9";
+    switch (severity) {
+      case "high":
+        return "red";
+      case "medium":
+        return "orange";
+      case "low":
+        return "green";
+      default:
+        return "default";
+    }
   };
 
-  const formatTimeRemaining = (seconds) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
-  };
-
+  // Columns for assigned sessions table
   const sessionColumns = [
-    { title: "Phòng", dataIndex: "room", width: 80 },
-    { title: "Đề thi", dataIndex: "exam_title" },
-    { 
-      title: "Thời gian", 
-      render: (record) => `${record.start_time} - ${record.end_time}`,
-      width: 120
-    },
     {
-      title: "Tiến độ",
-      render: (record) => {
-        const completedPercent = ((record.submitted + record.disconnected + record.absent) / record.total_students) * 100;
-        return (
-          <div>
-            <Progress 
-              percent={completedPercent} 
-              size="small" 
-              status={completedPercent > 80 ? "success" : "active"}
-            />
-            <div style={{ fontSize: "12px", color: "#666" }}>
-              {record.submitted + record.disconnected + record.absent}/{record.total_students} hoàn thành
-            </div>
-          </div>
-        );
-      },
-      width: 150
-    },
-    {
-      title: "Trạng thái SV",
-      render: (record) => (
-        <div style={{ fontSize: "12px" }}>
-          <div style={{ color: getStatusColor("taking") }}>
-            <UserOutlined /> {record.taking} đang thi
-          </div>
-          <div style={{ color: getStatusColor("submitted") }}>
-            <CheckCircleOutlined /> {record.submitted} đã nộp
-          </div>
-          {record.disconnected > 0 && (
-            <div style={{ color: getStatusColor("disconnected") }}>
-              <ExclamationCircleOutlined /> {record.disconnected} mất kết nối
-            </div>
-          )}
+      title: "Ca thi",
+      dataIndex: "exam_title",
+      key: "exam_title",
+      render: (text, record) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{text}</div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.subject_name}
+          </Text>
         </div>
       ),
-      width: 120
+    },
+    {
+      title: "Thời gian",
+      dataIndex: "start_at",
+      key: "start_at",
+      render: (startAt, record) => (
+          <div>
+          <div>{new Date(startAt).toLocaleString("vi-VN")}</div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {new Date(record.end_at).toLocaleString("vi-VN")}
+          </Text>
+            </div>
+      ),
+    },
+    {
+      title: "Phòng thi",
+      dataIndex: "room",
+      key: "room",
+      render: (room) => room || "Chưa phân phòng",
+    },
+    {
+      title: "Sinh viên",
+      key: "students",
+      render: (_, record) => (
+        <div>
+          <div>Tổng: {record.total_students}</div>
+          <div style={{ fontSize: 12 }}>
+            <Tag color="processing" size="small">
+              Đang thi: {record.taking}
+            </Tag>
+            <Tag color="success" size="small">
+              Đã nộp: {record.submitted}
+            </Tag>
+            </div>
+        </div>
+      ),
+    },
+    {
+      title: "Trạng thái",
+      key: "status",
+      render: (_, record) => {
+        const now = new Date();
+        const startAt = new Date(record.start_at);
+        const endAt = new Date(record.end_at);
+
+        if (now < startAt) {
+          return <Tag color="default">Chưa bắt đầu</Tag>;
+        } else if (now > endAt) {
+          return <Tag color="success">Đã kết thúc</Tag>;
+        } else {
+          return <Tag color="processing">Đang diễn ra</Tag>;
+        }
+      },
+    },
+    {
+      title: "Hành động",
+      key: "actions",
+      render: (_, record) => (
+        <Space>
+          <Button
+            type="primary"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => {
+              setSelectedSession(record);
+              loadSessionDetails(record.id);
+            }}
+          >
+            Xem chi tiết
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
+  // Columns for students table
+  const studentColumns = [
+    {
+      title: "Sinh viên",
+      key: "student",
+      render: (_, record) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{record.full_name}</div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.email}
+          </Text>
+        </div>
+      ),
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => (
+        <Tag color={getStatusColor(status)}>
+          {getStatusText(status)}
+        </Tag>
+      ),
+    },
+    {
+      title: "Thời gian bắt đầu",
+      dataIndex: "started_at",
+      key: "started_at",
+      render: (startedAt) =>
+        startedAt ? new Date(startedAt).toLocaleString("vi-VN") : "-",
+    },
+    {
+      title: "Thời gian nộp bài",
+      dataIndex: "submitted_at",
+      key: "submitted_at",
+      render: (submittedAt) =>
+        submittedAt ? new Date(submittedAt).toLocaleString("vi-VN") : "-",
+    },
+    {
+      title: "Điểm",
+      dataIndex: "score",
+      key: "score",
+      render: (score) => (score !== null ? score : "-"),
     },
     {
       title: "Vi phạm",
-      dataIndex: "violations",
-      render: (violations) => (
+      dataIndex: "violation_count",
+      key: "violation_count",
+      render: (count) => (
         <Badge 
-          count={violations} 
-          style={{ backgroundColor: violations > 5 ? "#ff4d4f" : "#faad14" }}
+          count={count}
+          style={{ backgroundColor: count > 0 ? "#ff4d4f" : "#52c41a" }}
         />
       ),
-      width: 80
     },
     {
-      title: "Còn lại",
-      dataIndex: "time_remaining",
-      render: (seconds) => (
-        <div style={{ 
-          color: seconds < 1800 ? "#ff4d4f" : "#666",
-          fontWeight: seconds < 1800 ? "bold" : "normal"
-        }}>
-          <ClockCircleOutlined /> {formatTimeRemaining(seconds)}
-        </div>
+      title: "Hành động",
+      key: "actions",
+      render: (_, record) => (
+        <Space>
+          <Button
+            type="link"
+            size="small"
+            icon={<ExclamationCircleOutlined />}
+            onClick={() => {
+              violationForm.setFieldsValue({ attempt_id: record.attempt_id });
+              setViolationModalVisible(true);
+            }}
+          >
+            Ghi vi phạm
+          </Button>
+        </Space>
       ),
-      width: 100
-    }
+    },
   ];
 
-  const violationColumns = [
-    {
-      title: "Thời gian",
-      dataIndex: "timestamp",
-      render: (time) => dayjs(time).format("HH:mm"),
-      width: 80
-    },
-    { title: "Sinh viên", dataIndex: "student_name", width: 120 },
-    { title: "Phòng", dataIndex: "room", width: 80 },
-    {
-      title: "Loại",
-      dataIndex: "type",
-      render: (type) => {
-        const typeLabels = {
-          tab_out: "Rời tab",
-          multi_device: "Nhiều thiết bị", 
-          timeout: "Mất kết nối",
-          suspicious: "Đáng nghi"
-        };
-        return typeLabels[type] || type;
-      },
-      width: 100
-    },
-    {
-      title: "Mức độ",
-      dataIndex: "severity", 
-      render: (severity) => (
-        <Badge 
-          color={getSeverityColor(severity)}
-          text={severity === "low" ? "Thấp" : severity === "medium" ? "TB" : "Cao"}
-        />
-      ),
-      width: 80
-    },
-    { title: "Mô tả", dataIndex: "description" }
-  ];
-
-  const incidentColumns = [
-    {
-      title: "Thời gian",
-      dataIndex: "timestamp", 
-      render: (time) => dayjs(time).format("HH:mm"),
-      width: 80
-    },
-    { title: "Sinh viên", dataIndex: "student_name", width: 120 },
-    { title: "Phòng", dataIndex: "room", width: 80 },
-    { title: "Mô tả", dataIndex: "description" }
-  ];
-
-  if (!dashboardData) {
-    return <div style={{ padding: 24 }}>Đang tải dashboard...</div>;
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", padding: "50px 0" }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16 }}>Đang tải dữ liệu...</div>
+      </div>
+    );
   }
-
-  const { activeSessions, recentViolations, pendingIncidents, statistics } = dashboardData;
 
   return (
     <div style={{ padding: 24 }}>
-      <h2>Dashboard Giám sát Thi</h2>
-      
-      {/* Thống kê tổng quan */}
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={4}>
+      <Title level={2}>Dashboard Giám thị</Title>
+
+      {/* Active Sessions Overview */}
+      {dashboardData?.active_sessions?.length > 0 && (
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          {dashboardData.active_sessions.map((session) => (
+            <Col xs={24} sm={12} lg={8} key={session.session_id}>
           <Card>
             <Statistic
-              title="Tổng SV"
-              value={statistics.totalStudents}
+                  title={session.exam_title}
+                  value={session.total_students}
+                  suffix="sinh viên"
               prefix={<UserOutlined />}
             />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card>
+                <div style={{ marginTop: 16 }}>
+                  <Row gutter={8}>
+                    <Col span={6}>
             <Statistic
               title="Đang thi"
-              value={statistics.totalTaking}
-              valueStyle={{ color: "#1890ff" }}
-              prefix={<ClockCircleOutlined />}
+                        value={session.taking}
+                        valueStyle={{ color: "#1890ff", fontSize: 16 }}
             />
-          </Card>
         </Col>
-        <Col span={4}>
-          <Card>
+                    <Col span={6}>
             <Statistic
               title="Đã nộp"
-              value={statistics.totalSubmitted}
-              valueStyle={{ color: "#52c41a" }}
-              prefix={<CheckCircleOutlined />}
+                        value={session.submitted}
+                        valueStyle={{ color: "#52c41a", fontSize: 16 }}
             />
-          </Card>
         </Col>
-        <Col span={4}>
-          <Card>
+                    <Col span={6}>
             <Statistic
               title="Mất kết nối"
-              value={statistics.totalDisconnected}
-              valueStyle={{ color: "#ff4d4f" }}
-              prefix={<ExclamationCircleOutlined />}
+                        value={session.disconnected}
+                        valueStyle={{ color: "#faad14", fontSize: 16 }}
             />
-          </Card>
         </Col>
-        <Col span={4}>
-          <Card>
+                    <Col span={6}>
             <Statistic
               title="Vi phạm"
-              value={statistics.totalViolations}
-              valueStyle={{ color: "#faad14" }}
+                        value={session.violations}
+                        valueStyle={{ color: "#ff4d4f", fontSize: 16 }}
             />
+        </Col>
+                  </Row>
+                  <div style={{ marginTop: 12 }}>
+                    <Text type="secondary">
+                      Phòng: {session.room} | Thời gian còn lại: {Math.floor(session.time_remaining / 60)} phút
+                    </Text>
+                  </div>
+                </div>
           </Card>
         </Col>
-        <Col span={4}>
-          <Card>
-            <Statistic
-              title="Sự cố"
-              value={statistics.totalIncidents}
-              valueStyle={{ color: "#ff4d4f" }}
-            />
-          </Card>
-        </Col>
+          ))}
       </Row>
-
-      {/* Cảnh báo */}
-      {(statistics.totalViolations > 10 || statistics.totalIncidents > 5) && (
-        <Alert
-          message="Cảnh báo"
-          description={`Phát hiện ${statistics.totalViolations} vi phạm và ${statistics.totalIncidents} sự cố. Vui lòng kiểm tra ngay!`}
-          type="warning"
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
       )}
 
-      {/* Ca thi đang diễn ra */}
-      <Card title="Ca thi đang diễn ra" style={{ marginBottom: 16 }}>
+      {/* Recent Violations */}
+      {dashboardData?.recent_violations?.length > 0 && (
+        <Card title="Vi phạm gần đây" style={{ marginBottom: 24 }}>
+          <Timeline>
+            {dashboardData.recent_violations.map((violation) => (
+              <Timeline.Item
+                key={violation.id}
+                color={getSeverityColor(violation.severity)}
+                dot={
+                  violation.severity === "high" ? (
+                    <ExclamationCircleOutlined />
+                  ) : violation.severity === "medium" ? (
+                    <WarningOutlined />
+                  ) : (
+                    <CheckCircleOutlined />
+                  )
+                }
+              >
+                <div>
+                  <div style={{ fontWeight: 500 }}>
+                    {violation.student_name} - {violation.room}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#666" }}>
+                    {violation.type} - {violation.description}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#999" }}>
+                    {new Date(violation.timestamp).toLocaleString("vi-VN")}
+                  </div>
+                </div>
+              </Timeline.Item>
+            ))}
+          </Timeline>
+        </Card>
+      )}
+
+      {/* Assigned Sessions */}
+      <Card title="Ca thi được phân công">
         <Table
-          dataSource={activeSessions}
           columns={sessionColumns}
-          rowKey="session_id"
-          pagination={false}
-          size="small"
+          dataSource={assignedSessions}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Chưa có ca thi nào được phân công"
+              />
+            ),
+          }}
         />
       </Card>
 
-      <Row gutter={16}>
-        {/* Vi phạm gần đây */}
-        <Col span={12}>
-          <Card title="Vi phạm gần đây" extra={<Badge count={recentViolations.length} />}>
-            <Table
-              dataSource={recentViolations}
-              columns={violationColumns}
-              rowKey="id"
-              pagination={false}
-              size="small"
+      {/* Session Details Modal */}
+      <Modal
+        title={`Chi tiết ca thi: ${selectedSession?.exam_title}`}
+        open={!!selectedSession}
+        onCancel={() => {
+          setSelectedSession(null);
+          setSessionDetails(null);
+        }}
+        footer={[
+          <Button
+            key="incident"
+            type="primary"
+            danger
+            icon={<WarningOutlined />}
+            onClick={() => setIncidentModalVisible(true)}
+          >
+            Báo cáo sự cố
+          </Button>,
+          <Button key="close" onClick={() => setSelectedSession(null)}>
+            Đóng
+          </Button>,
+        ]}
+        width={1000}
+      >
+        {sessionDetails && (
+          <div>
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+              <Col span={8}>
+                <Card size="small">
+                  <Statistic
+                    title="Tổng sinh viên"
+                    value={sessionDetails.students.length}
+                    prefix={<UserOutlined />}
+                  />
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small">
+                  <Statistic
+                    title="Đang thi"
+                    value={sessionDetails.students.filter(s => s.status === "in_progress").length}
+                    valueStyle={{ color: "#1890ff" }}
+                    prefix={<PlayCircleOutlined />}
             />
           </Card>
         </Col>
-
-        {/* Sự cố chưa xử lý */}
-        <Col span={12}>
-          <Card title="Sự cố chưa xử lý" extra={<Badge count={pendingIncidents.length} />}>
-            <Table
-              dataSource={pendingIncidents}
-              columns={incidentColumns}
-              rowKey="id"
-              pagination={false}
-              size="small"
+              <Col span={8}>
+                <Card size="small">
+                  <Statistic
+                    title="Đã nộp bài"
+                    value={sessionDetails.students.filter(s => s.status === "submitted").length}
+                    valueStyle={{ color: "#52c41a" }}
+                    prefix={<CheckCircleOutlined />}
             />
           </Card>
         </Col>
       </Row>
+
+            <Table
+              columns={studentColumns}
+              dataSource={sessionDetails.students}
+              rowKey="student_id"
+              pagination={{ pageSize: 10 }}
+              size="small"
+            />
+          </div>
+        )}
+      </Modal>
+
+      {/* Violation Modal */}
+      <Modal
+        title="Ghi nhận vi phạm"
+        open={violationModalVisible}
+        onCancel={() => {
+          setViolationModalVisible(false);
+          violationForm.resetFields();
+        }}
+        onOk={() => violationForm.submit()}
+      >
+        <Form
+          form={violationForm}
+          layout="vertical"
+          onFinish={handleRecordViolation}
+        >
+          <Form.Item
+            name="type"
+            label="Loại vi phạm"
+            rules={[{ required: true, message: "Vui lòng chọn loại vi phạm" }]}
+          >
+            <Select placeholder="Chọn loại vi phạm">
+              <Option value="tab_out">Chuyển tab</Option>
+              <Option value="multi_device">Sử dụng nhiều thiết bị</Option>
+              <Option value="cheating">Gian lận</Option>
+              <Option value="suspicious">Hành vi đáng nghi</Option>
+              <Option value="other">Khác</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="description"
+            label="Mô tả chi tiết"
+            rules={[{ required: true, message: "Vui lòng nhập mô tả" }]}
+          >
+            <Input.TextArea rows={4} placeholder="Mô tả chi tiết vi phạm..." />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Incident Modal */}
+      <Modal
+        title="Báo cáo sự cố"
+        open={incidentModalVisible}
+        onCancel={() => {
+          setIncidentModalVisible(false);
+          incidentForm.resetFields();
+        }}
+        onOk={() => incidentForm.submit()}
+      >
+        <Form
+          form={incidentForm}
+          layout="vertical"
+          onFinish={handleReportIncident}
+        >
+          <Form.Item
+            name="type"
+            label="Loại sự cố"
+            rules={[{ required: true, message: "Vui lòng chọn loại sự cố" }]}
+          >
+            <Select placeholder="Chọn loại sự cố">
+              <Option value="technical">Sự cố kỹ thuật</Option>
+              <Option value="network">Sự cố mạng</Option>
+              <Option value="power">Mất điện</Option>
+              <Option value="disruption">Gián đoạn</Option>
+              <Option value="other">Khác</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="severity"
+            label="Mức độ nghiêm trọng"
+            rules={[{ required: true, message: "Vui lòng chọn mức độ" }]}
+          >
+            <Select placeholder="Chọn mức độ nghiêm trọng">
+              <Option value="low">Thấp</Option>
+              <Option value="medium">Trung bình</Option>
+              <Option value="high">Cao</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="description"
+            label="Mô tả chi tiết"
+            rules={[{ required: true, message: "Vui lòng nhập mô tả" }]}
+          >
+            <Input.TextArea rows={4} placeholder="Mô tả chi tiết sự cố..." />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

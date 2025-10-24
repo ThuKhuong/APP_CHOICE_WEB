@@ -17,7 +17,7 @@ import {
 } from "antd";
 import { useNavigate } from "react-router-dom";
 import { ReloadOutlined } from "@ant-design/icons";
-import axiosClient from "../api/axiosClient";
+import axiosTeacherClient from "../api/axiosTeacherClient";
 
 const { Step } = Steps;
 const { Title, Text } = Typography;
@@ -44,7 +44,7 @@ export default function CreateExamPage() {
   // Load danh sách môn học
   const loadSubjects = async () => {
     try {
-      const res = await axiosClient.get("/subjects");
+      const res = await axiosTeacherClient.get("/subjects");
       setSubjects(res.data);
     } catch (error) {
       message.error("Không thể tải danh sách môn học");
@@ -55,7 +55,7 @@ export default function CreateExamPage() {
   const loadChapters = async (subjectId) => {
     if (!subjectId) return;
     try {
-      const res = await axiosClient.get(`/subjects/${subjectId}/chapters`);
+      const res = await axiosTeacherClient.get(`/subjects/${subjectId}/chapters`);
       setChapters(res.data);
     } catch (error) {
       message.error("Không thể tải danh sách chương");
@@ -66,7 +66,7 @@ export default function CreateExamPage() {
   const generatePreviewQuestions = async (values) => {
     setLoading(true);
     try {
-      const res = await axiosClient.post("/exams/generate-preview", {
+      const res = await axiosTeacherClient.post("/exams/generate-preview", {
         subject_id: values.subject_id,
         total_questions: values.total_questions,
         time_limit: values.time_limit,
@@ -93,7 +93,7 @@ export default function CreateExamPage() {
   const saveExam = async (values) => {
     setLoading(true);
     try {
-      const response = await axiosClient.post("/exams", {
+      const response = await axiosTeacherClient.post("/exams", {
         subject_id: values.subject_id,
         title: values.title,
         duration: values.time_limit,
@@ -185,7 +185,7 @@ export default function CreateExamPage() {
     try {
       console.log("Loading questions for chapter:", chapterId);
       // Lấy danh sách câu hỏi cùng chương
-      const res = await axiosClient.get(`/chapters/${chapterId}/questions`);
+      const res = await axiosTeacherClient.get(`/chapters/${chapterId}/questions`);
       console.log("API response:", res.data);
       const allQuestions = res.data;
       

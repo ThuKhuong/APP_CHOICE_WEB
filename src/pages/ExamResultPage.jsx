@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Table, Button, message } from "antd";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
-import axiosClient from "../api/axiosClient";
+import axiosTeacherClient from "../api/axiosTeacherClient";
 
 export default function ExamResultPage() {
   const [data, setData] = useState(null);
@@ -12,7 +12,7 @@ export default function ExamResultPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await axiosClient.get("/exam-sessions"); // gọi API backend
+        const res = await axiosTeacherClient.get("/exam-sessions"); // gọi API backend
         setData(res.data);
       } catch (err) {
         console.error(err);
