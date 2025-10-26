@@ -9,10 +9,13 @@ import {
   ClockCircleOutlined,
   BarChartOutlined,
   // Proctor icons
-  DashboardOutlined,
   EyeOutlined,
   ExclamationCircleOutlined,
   WarningOutlined,
+  BugOutlined,
+  // Admin icons
+  DashboardOutlined,
+  TeamOutlined,
   // Common icons
   LogoutOutlined,
   UserOutlined,
@@ -76,14 +79,14 @@ export default function UnifiedLayout({ children }) {
   // Menu items cho Proctor
   const proctorItems = [
     {
-      key: "/proctor/dashboard",
-      icon: <DashboardOutlined style={{ color: "#40a9ff" }} />,
-      label: "Dashboard",
-    },
-    {
       key: "/proctor/sessions",
       icon: <EyeOutlined style={{ color: "#52c41a" }} />,
-      label: "Ca thi được phân công",
+      label: "Coi thi",
+    },
+    {
+      key: "/proctor/issue-reports",
+      icon: <BugOutlined style={{ color: "#722ed1" }} />,
+      label: "Báo lỗi câu hỏi",
     },
     {
       key: "/proctor/violations",
@@ -94,6 +97,20 @@ export default function UnifiedLayout({ children }) {
       key: "/proctor/incidents",
       icon: <WarningOutlined style={{ color: "#ff4d4f" }} />,
       label: "Sự cố",
+    },
+  ];
+
+  // Menu items cho Admin
+  const adminItems = [
+    {
+      key: "/admin/dashboard",
+      icon: <DashboardOutlined style={{ color: "#1890ff" }} />,
+      label: "Thống Kê",
+    },
+    {
+      key: "/admin/users",
+      icon: <TeamOutlined style={{ color: "#52c41a" }} />,
+      label: "Quản Trị Người Dùng",
     },
   ];
 
@@ -117,7 +134,7 @@ export default function UnifiedLayout({ children }) {
     }
     if (userRoles.includes("admin")) {
       // Admin có thể truy cập tất cả
-      menuItems.push(...teacherItems, ...proctorItems);
+      menuItems.push(...adminItems);
     }
 
     // Loại bỏ duplicate items
@@ -154,7 +171,7 @@ export default function UnifiedLayout({ children }) {
       case "teacher":
         return "Hệ thống thi trắc nghiệm";
       case "proctor":
-        return "Dashboard Giám thị";
+        return "Hệ thống thi trắc nghiệm";
       case "admin":
         return "Hệ thống thi trắc nghiệm";
       default:

@@ -48,6 +48,7 @@ export default function ProctorSelector({
 
   // Cập nhật selectedProctor khi value thay đổi
   useEffect(() => {
+    console.log("ProctorSelector value changed:", value);
     setSelectedProctor(value || null);
   }, [value]);
 
@@ -65,6 +66,10 @@ export default function ProctorSelector({
     setSelectedProctor(null);
     onChange?.(null);
   };
+
+  // Debug log
+  console.log("ProctorSelector render - selectedProctor:", selectedProctor);
+  console.log("ProctorSelector render - value prop:", value);
 
   return (
     <Card 

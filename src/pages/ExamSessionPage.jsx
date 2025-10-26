@@ -33,6 +33,11 @@ export default function ExamSessionPage() {
   const [viewingSession, setViewingSession] = useState(null);
   const [selectedProctor, setSelectedProctor] = useState(null);
   const [sessionProctor, setSessionProctor] = useState(null);
+
+  // Debug selectedProctor changes
+  useEffect(() => {
+    console.log("selectedProctor state changed:", selectedProctor);
+  }, [selectedProctor]);
   const [filteredSessions, setFilteredSessions] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState(null);
@@ -293,11 +298,16 @@ export default function ExamSessionPage() {
   // Load thông tin giám thị của ca thi
   const loadSessionProctor = async (sessionId) => {
     try {
+      console.log("Loading proctor for session:", sessionId);
       const response = await axiosTeacherClient.get(`/sessions/${sessionId}/proctor`);
+      console.log("Proctor response:", response.data);
+      console.log("Proctor response status:", response.status);
       setSessionProctor(response.data);
       return response.data;
     } catch (err) {
-      console.log("Không có giám thị được phân công cho ca thi này");
+      console.log("Error loading proctor:", err);
+      console.log("Error response:", err.response?.data);
+      console.log("Error status:", err.response?.status);
       setSessionProctor(null);
       return null;
     }
@@ -325,8 +335,11 @@ export default function ExamSessionPage() {
     });
 
     // Load thông tin giám thị đã được phân công
+    console.log("Loading proctor for edit session:", record.id);
     const proctor = await loadSessionProctor(record.id);
+    console.log("Proctor loaded for edit:", proctor);
     setSelectedProctor(proctor);
+    console.log("setSelectedProctor called with:", proctor);
   };
 
   //  Cột bảng
@@ -624,6 +637,7 @@ export default function ExamSessionPage() {
 
           <Form.Item label="Phân công giám thị">
             <ProctorSelector
+              key={selectedProctor?.id || 'no-proctor'}
               value={selectedProctor}
               onChange={setSelectedProctor}
             />

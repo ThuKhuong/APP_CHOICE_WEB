@@ -36,7 +36,7 @@ export default function LoginPage() {
       if (userRoles.includes("admin")) {
         window.location.href = "/admin/dashboard";
       } else if (userRoles.includes("proctor")) {
-        window.location.href = "/proctor/dashboard";
+        window.location.href = "/proctor/sessions";
       } else if (userRoles.includes("teacher")) {
         window.location.href = "/subjects";
       } else {

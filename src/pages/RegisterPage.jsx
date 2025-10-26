@@ -1,11 +1,12 @@
 import React from "react";
-import { Form, Input, Button, Card, Typography, message } from "antd";
+import { Form, Input, Button, Card, Typography, message, Modal } from "antd";
 import { useNavigate } from "react-router-dom";
 import axiosClient from "../api/axiosClient";
 import {
   UserAddOutlined,
   MailOutlined,
   LockOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
@@ -13,18 +14,25 @@ const { Title, Text } = Typography;
 export default function RegisterTeacherPage() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const [successModalVisible, setSuccessModalVisible] = React.useState(false);
+  const [registeredUser, setRegisteredUser] = React.useState(null);
 
   const handleRegister = async () => {
     try {
       const values = await form.validateFields();
-      const res = await axiosClient.post("/auth/register", values);
-      message.success("Đăng ký thành công!");
-      localStorage.setItem("token", res.data.token);
-      navigate("/"); // quay lại login
+      const res = await axiosClient.post("/auth/register-teacher", values);
+      setRegisteredUser(res.data.user);
+      setSuccessModalVisible(true);
     } catch (err) {
       console.error(err);
       message.error(err.response?.data?.message || "Lỗi đăng ký");
     }
+  };
+
+  const handleModalOk = () => {
+    setSuccessModalVisible(false);
+    form.resetFields();
+    navigate("/"); // quay lại login
   };
 
   return (
@@ -68,7 +76,9 @@ export default function RegisterTeacherPage() {
             Đăng ký tài khoản giáo viên
           </Title>
           <Text style={{ color: "#f0f5ff", textAlign: "center" }}>
-            Tạo tài khoản để quản lý ngân hàng đề thi và ca thi trực tuyến.
+            Tạo tài khoản giáo viên để quản lý ngân hàng đề thi và ca thi trực tuyến.
+            <br />
+            <strong>Tài khoản sẽ được kích hoạt sau khi quản trị viên duyệt.</strong>
           </Text>
         </div>
 
@@ -160,6 +170,56 @@ export default function RegisterTeacherPage() {
           </Card>
         </div>
       </div>
+
+      {/* Modal thông báo đăng ký thành công */}
+      <Modal
+        title={
+          <div style={{ textAlign: "center" }}>
+            <CheckCircleOutlined 
+              style={{ 
+                fontSize: "48px", 
+                color: "#52c41a",
+                marginBottom: "16px",
+                display: "block"
+              }} 
+            />
+            <Title level={4} style={{ margin: 0 }}>
+              Đăng ký thành công!
+            </Title>
+          </div>
+        }
+        open={successModalVisible}
+        onOk={handleModalOk}
+        onCancel={handleModalOk}
+        footer={
+          <Button type="primary" block onClick={handleModalOk}>
+            Về trang đăng nhập
+          </Button>
+        }
+        centered
+        width={500}
+      >
+        <div style={{ padding: "20px 0", textAlign: "center" }}>
+          <p style={{ fontSize: "16px", marginBottom: "20px" }}>
+            Tài khoản của bạn đã được tạo thành công!
+          </p>
+          
+          <div style={{ 
+            background: "#fff7e6", 
+            border: "1px solid #ffd591",
+            padding: "16px", 
+            borderRadius: "8px" 
+          }}>
+            <p style={{ margin: 0, color: "#d46b08" }}>
+              <strong>Tài khoản đang chờ quản trị viên duyệt</strong>
+            </p>
+            <p style={{ margin: "8px 0 0 0", color: "#666", fontSize: "14px" }}>
+              Bạn sẽ nhận được thông báo khi tài khoản được kích hoạt. 
+              Sau đó bạn có thể đăng nhập để sử dụng hệ thống.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

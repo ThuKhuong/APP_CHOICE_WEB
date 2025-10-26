@@ -8,8 +8,9 @@ import ExamSessionPage from "./pages/ExamSessionPage";
 import ExamResultPage from "./pages/ExamResultPage";
 import ExamResultDetailPage from "./pages/ExamResultDetailPage";
 import StudentAttemptDetailPage from "./pages/StudentAttemptDetailPage";
-import ProctorDashboard from "./pages/ProctorDashboard";
 import ProctorSessionsPage from "./pages/ProctorSessionsPage";
+import ProctorMonitorPage from "./pages/ProctorMonitorPage";
+import ProctorIssueReportsPage from "./pages/ProctorIssueReportsPage";
 import ProctorViolationsPage from "./pages/ProctorViolationsPage";
 import ProctorIncidentsPage from "./pages/ProctorIncidentsPage";
 import RegisterTeacherPage from "./pages/RegisterPage";
@@ -17,6 +18,8 @@ import UnifiedLayout from "./components/UnifiedLayout";
 import RoleGuard from "./components/RoleGuard";
 import ShuffleExamPage from "./pages/ShuffleExamPage";
 import CreateExamPage from "./pages/CreateExamPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import UserManagementPage from "./pages/UserManagementPage";
 
 export default function App() {
   return (
@@ -120,21 +123,31 @@ export default function App() {
         
         {/* Proctor Routes với UnifiedLayout */}
         <Route
-          path="/proctor/dashboard"
-          element={
-            <RoleGuard allowedRoles={["proctor", "teacher"]}>
-              <UnifiedLayout>
-                <ProctorDashboard />
-              </UnifiedLayout>
-            </RoleGuard>
-          }
-        />
-        <Route
           path="/proctor/sessions"
           element={
             <RoleGuard allowedRoles={["proctor", "teacher"]}>
               <UnifiedLayout>
                 <ProctorSessionsPage />
+              </UnifiedLayout>
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/proctor/sessions/:sessionId/monitor"
+          element={
+            <RoleGuard allowedRoles={["proctor", "teacher"]}>
+              <UnifiedLayout>
+                <ProctorMonitorPage />
+              </UnifiedLayout>
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/proctor/issue-reports"
+          element={
+            <RoleGuard allowedRoles={["proctor", "teacher"]}>
+              <UnifiedLayout>
+                <ProctorIssueReportsPage />
               </UnifiedLayout>
             </RoleGuard>
           }
@@ -166,10 +179,17 @@ export default function App() {
           element={
             <RoleGuard allowedRoles={["admin"]}>
               <UnifiedLayout>
-                <div style={{ padding: 24 }}>
-                  <h1>Admin Dashboard</h1>
-                  <p>Chào mừng đến với trang quản trị viên!</p>
-                </div>
+                <AdminDashboardPage />
+              </UnifiedLayout>
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <RoleGuard allowedRoles={["admin"]}>
+              <UnifiedLayout>
+                <UserManagementPage />
               </UnifiedLayout>
             </RoleGuard>
           }
