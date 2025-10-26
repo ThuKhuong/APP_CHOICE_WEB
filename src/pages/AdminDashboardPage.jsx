@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, Row, Col, Statistic, Table, Button, Space, message, Empty } from "antd";
 import { DashboardOutlined, UserOutlined, BookOutlined, CheckCircleOutlined, TeamOutlined } from "@ant-design/icons";
-import axiosClient from "../api/axiosClient";
+import axiosAdminClient from "../api/axiosAdminClient";
 
 
 export default function AdminDashboardPage() {
@@ -17,14 +17,14 @@ export default function AdminDashboardPage() {
     setLoading(true);
     try {
       const [statsRes, examsRes] = await Promise.all([
-        axiosClient.get("/admin/dashboard"),
-        axiosClient.get("/admin/exams")
+        axiosAdminClient.get("/dashboard"),
+        axiosAdminClient.get("/exams")
       ]);
       
       console.log("Dashboard Stats:", statsRes.data);
       console.log("Exams Data:", examsRes.data);
       
-      setStats(statsRes.data.stats || {});
+      setStats(statsRes.data || {});
       
       // Handle exams data format
       let examsData = examsRes.data;

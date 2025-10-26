@@ -29,6 +29,7 @@ import {
   SaveOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
+import axiosAdminClient from "../api/axiosAdminClient";
 import axiosClient from "../api/axiosClient";
 
 const { Option } = Select;
@@ -60,7 +61,7 @@ export default function UserManagementPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await axiosClient.get("/admin/users");
+      const response = await axiosAdminClient.get("/users");
       setUsers(response.data.users || []);
     } catch (error) {
       message.error("Không thể tải danh sách người dùng");
@@ -71,7 +72,7 @@ export default function UserManagementPage() {
 
   const fetchPendingTeachers = async () => {
     try {
-      const response = await axiosClient.get("/admin/pending-teachers");
+      const response = await axiosAdminClient.get("/pending-teachers");
       setPendingTeachers(response.data.pendingTeachers || []);
     } catch (error) {
       console.error("Lỗi lấy giáo viên chờ duyệt:", error);
@@ -80,7 +81,7 @@ export default function UserManagementPage() {
 
   const handleApproveTeacher = async (teacherId) => {
     try {
-      await axiosClient.put(`/admin/approve-teacher/${teacherId}`);
+      await axiosAdminClient.put(`/approve-teacher/${teacherId}`);
       message.success("Duyệt giáo viên thành công!");
       fetchUsers();
       fetchPendingTeachers();
@@ -91,7 +92,7 @@ export default function UserManagementPage() {
 
   const handleUpdateRole = async (userId, newRole) => {
     try {
-      await axiosClient.put(`/admin/users/${userId}/role`, { role: newRole });
+      await axiosAdminClient.put(`/users/${userId}/role`, { role: newRole });
       message.success("Cập nhật quyền thành công!");
       fetchUsers();
     } catch (error) {
@@ -101,7 +102,7 @@ export default function UserManagementPage() {
 
   const handleUpdateStatus = async (userId, status) => {
     try {
-      await axiosClient.put(`/admin/users/${userId}/status`, { status });
+      await axiosAdminClient.put(`/users/${userId}/status`, { status });
       message.success("Cập nhật trạng thái thành công!");
       fetchUsers();
     } catch (error) {
@@ -151,19 +152,21 @@ export default function UserManagementPage() {
       
       if (editingUser) {
         // Update existing user
-        await axiosClient.put(`/admin/users/${editingUser.id}/role`, { 
-          role: Array.isArray(roles) ? JSON.stringify(roles) : roles 
+        await axiosAdminClient.put(`/users/${editingUser.id}/role`, { 
+          role: Array.isArray(roles) ? roles : [roles] 
         });
         if (status !== undefined) {
-          await axiosClient.put(`/admin/users/${editingUser.id}/status`, { status });
+          await axiosAdminClient.put(`/users/${editingUser.id}/status`, { status });
         }
         message.success("Cập nhật user thành công!");
       } else {
-        // Create new user
-        await axiosClient.post("/auth/register", {
+        // Create new user using admin API
+        await axiosAdminClient.post("/users", {
           full_name,
           email,
           password,
+          role: Array.isArray(roles) ? roles : [roles],
+          status: status !== undefined ? status : 1
         });
         message.success("Tạo user thành công!");
       }
